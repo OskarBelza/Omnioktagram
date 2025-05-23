@@ -1,0 +1,105 @@
+body {
+    background-color: #1c1c1c;
+    color: white;
+    text-align: center;
+    font-family: sans-serif;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+}
+
+.canvas-container {
+    position: relative;
+    margin: 0 auto;
+    aspect-ratio: 1 / 1;
+    width: 100%;
+    max-width: 33vw;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+@media (max-width: 768px) {
+    .canvas-container {
+        max-width: 90vw;
+    }
+}
+
+canvas {
+    background-color: #333;
+    border: 2px solid white;
+    width: 100%;
+    height: 100%;
+    display: block;
+    touch-action: none;
+    box-sizing: border-box;
+}
+
+.symbol {
+    position: absolute;
+    width: 48px;
+    height: 48px;
+    z-index: 1;
+}
+
+.history {
+    color: white;
+    font-size: 16px;
+    font-family: monospace;
+    background: rgba(0, 0, 0, 0.6);
+    padding: 12px;
+    border: 1px solid #aaa;
+    margin: 20px auto 0;
+    z-index: 10;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 33vw;
+}
+
+@media (max-width: 768px) {
+    .history {
+        max-width: 90vw;
+    }
+}
+
+.button-row {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+    max-width: 33vw;
+    gap: 8px;
+}
+
+@media (max-width: 768px) {
+    .button-row {
+        max-width: 90vw;
+    }
+}
+
+button {
+    all: unset;
+    text-align: center;
+    padding: 12px;
+    font-size: 16px;
+    background-color: #444;
+    color: white;
+    border: 1px solid #888;
+    cursor: pointer;
+    flex: 1 1 50%;
+    transition: background-color 0.3s ease;
+}
+
+button:hover {
+    background-color: #666;
+}
+
+.vertex-icon {
+    position: absolute;
+    height: auto;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 2;
+}

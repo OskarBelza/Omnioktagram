@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Omnioktagram</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <h1>Omnioktagram</h1>
+    <div class="canvas-container">
+        <canvas id="octogramCanvas"></canvas>
+        <img class="vertex-icon" data-index="0">
+        <img class="vertex-icon" data-index="1">
+        <img class="vertex-icon" data-index="2">
+        <img class="vertex-icon" data-index="3">
+        <img class="vertex-icon" data-index="4">
+        <img class="vertex-icon" data-index="5">
+        <img class="vertex-icon" data-index="6">
+        <img class="vertex-icon" data-index="7">
+    </div>
+    <div class="button-row">
+        <button id="skipButton" class="skip-btn">Pomiń</button>
+        <button id="resetButton" class="reset-btn">Resetuj</button>
+    </div>
+    <div id="history" class="history"></div>
+
+    <script>
+        const canvas = document.getElementById('octogramCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let center = { x: 0, y: 0 };
+        let radius = 0;
+        let points = [];
+
+
+        function resizeCanvasAndGeometry() {
+            const dpr = window.devicePixelRatio || 1;
+            const rect = canvas.getBoundingClientRect();
+            const cssSize = Math.min(rect.width, rect.height);
+
+            canvas.width = cssSize * dpr;
+            canvas.height = cssSize * dpr;
+
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.scale(dpr, dpr);
+
+            center = { x: cssSize / 2, y: cssSize / 2 };
+            radius = cssSize * 0.375;
+
+            points = [];
+            for (let i = 0; i < 8; i++) {
+                const angle = (Math.PI / 4) * i - Math.PI / 2;
+                points.push({
+                    x: center.x + radius * Math.cos(angle),
+                    y: center.y + radius * Math.sin(angle)
+                });
+            }
+        }
+
+
+        let dragging = false;
+        let startPoint = null;
+        let currentMouse = { x: 0, y: 0 };
+        let lastEndPoint = null;
+        let hasDragged = false;
+        let actionCount = 0;
+        let visitedPoints = [];
+        let historyShown = false;
+        let actions = [];
+        let pointDataLog = [];
+        let totalManaCost = 0;
+        let spellCode = [];
+        let lastTouchOffset = null;
+
+        const ACTION_LIMIT = 8;
+        const ACTION_COLORS = [
+            'yellow',
+            'red',
+            'blue',
+            'green',
+            'turquoise',
+            'magenta',
+            '#994C00',
+            'black'
+        ];
+
+
+        function normalizePoint(p) {
+            return { x: p.x / canvas.width, y: p.y / canvas.height };
+        }
+
+        function denormalizePoint(p) {
+            return { x: p.x * canvas.width, y: p.y * canvas.height };
+        }
+
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function drawBaseLines() {
+            const baseLineWidth = radius * 0.003;
+
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = baseLineWidth;
+
+            for (let i = 0; i < points.length; i++) {
+                for (let j = i + 1; j < points.length; j++) {
+                    ctx.beginPath();
+                    ctx.moveTo(points[i].x, points[i].y);
+                    ctx.lineTo(points[j].x, points[j].y);
+                    ctx.stroke();
+                }
+            }
+
+            ctx.beginPath();
+            ctx.arc(center.x, center.y, radius, 0, 2 * Math.PI);
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = baseLineWidth;
+            ctx.stroke();
+        }
+
+        function drawActions() {
+            const pointCounts = {};
+            actions.forEach(action => {
+                if (action.type === 'marker' || action.type === 'skip') {
+                    const key = `${action.point.x},${action.point.y}`;
+                    pointCounts[key] = (pointCounts[key] || 0) + 1;
+                }
+            });
+
+            const currentCount = {};
+
+            for (const action of actions) {
+                if (action.type === 'line') {
+                    const from = denormalizePoint(action.from);
+                    const to = denormalizePoint(action.to);
+
+                    const fromKey = `${action.from.x},${action.from.y}`;
+                    const count = pointCounts[fromKey] || 0;
+                    const dx = to.x - from.x;
+                    const dy = to.y - from.y;
+                    const length = Math.sqrt(dx * dx + dy * dy);
+                    let offsetX = 0, offsetY = 0;
+
+                    const baseRingRadius = radius * 0.07;
+                    const ringSpacing = radius * 0.035;
+                    const arcRadius = baseRingRadius + (count - 1) * ringSpacing;
+
+                    if (length > 0 && count > 0) {
+                        const unitX = dx / length;
+                        const unitY = dy / length;
+                        offsetX = unitX * arcRadius;
+                        offsetY = unitY * arcRadius;
+                    }
+
+                    ctx.beginPath();
+                    ctx.moveTo(from.x + offsetX, from.y + offsetY);
+                    ctx.lineTo(to.x, to.y);
+                    ctx.strokeStyle = action.color;
+                    ctx.lineWidth = radius * 0.012;
+                    ctx.stroke();
+                }
+
+                if (action.type === 'marker' || action.type === 'skip') {
+                    const point = denormalizePoint(action.point);
+                    const key = `${action.point.x},${action.point.y}`;
+                    const ringIndex = currentCount[key] || 0;
+
+                    const baseRingRadius = radius * 0.07;
+                    const ringSpacing = radius * 0.035;
+                    const arcRadius = baseRingRadius + ringIndex * ringSpacing;
+
+                    ctx.beginPath();
+                    if (action.type === 'skip') {
+                        ctx.setLineDash([radius * 0.015, radius * 0.07]);
+                    }
+
+                    ctx.arc(point.x, point.y, arcRadius, 0, 2 * Math.PI);
+                    ctx.strokeStyle = action.color;
+                    ctx.lineWidth = action.type === 'skip' ? radius * 0.009 : radius * 0.012;
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+
+                    currentCount[key] = ringIndex + 1;
+                }
+            }
+        }
+
+        function drawVertices() {
+            const vertexRadius = radius * 0.03;
+            const lineWidth = radius * 0.0075;
+
+            for (const pt of points) {
+                ctx.beginPath();
+                ctx.arc(pt.x, pt.y, vertexRadius, 0, 2 * Math.PI);
+                ctx.strokeStyle = 'white';
+                ctx.lineWidth = lineWidth;
+                ctx.stroke();
+            }
+        }
+
+        function drawTempLine() {
+            if (dragging && startPoint) {
+                let fromX = startPoint.x;
+                let fromY = startPoint.y;
+                const fromKey = `${startPoint.x},${startPoint.y}`;
+                let markerCount = 0;
+
+                for (const action of actions) {
+                    if (action.type === 'marker' || action.type === 'skip') {
+                        const pt = denormalizePoint(action.point);
+                        if (`${pt.x},${pt.y}` === fromKey) {
+                            markerCount++;
+                        }
+                    }
+                }
+
+                const baseRingRadius = radius * 0.07;
+                const ringSpacing = radius * 0.035;
+                const arcRadius = baseRingRadius + (markerCount - 1) * ringSpacing;
+                const lineWidth = radius * 0.012;
+
+                if (markerCount > 0) {
+                    const dx = currentMouse.x - fromX;
+                    const dy = currentMouse.y - fromY;
+                    const length = Math.sqrt(dx * dx + dy * dy);
+                    const unitX = dx / length;
+                    const unitY = dy / length;
+
+                    fromX += unitX * arcRadius;
+                    fromY += unitY * arcRadius;
+                }
+
+                ctx.beginPath();
+                ctx.moveTo(fromX, fromY);
+                ctx.lineTo(currentMouse.x, currentMouse.y);
+                ctx.strokeStyle = 'black';
+                ctx.lineWidth = lineWidth;
+                ctx.stroke();
+            }
+        }
+
+        function updateVertexIcons(stepIndex) {
+            const icons = document.querySelectorAll('.vertex-icon');
+            const canvasWidth = canvas.width / (window.devicePixelRatio || 1);
+            const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
+
+            const offset = radius * 0.17;
+            const baseIconSize = radius * 0.18;
+
+            const stepScaling = {
+                0: 1.1,
+                1: 1.1,
+                2: 1.45,
+                3: 1.45,
+                4: 0.65,
+                5: 0.65,
+                6: 0.65,
+                7: 0.65
+            };
+
+            const scale = stepScaling[stepIndex] ?? 1.0;
+            const iconSize = baseIconSize * scale;
+
+            icons.forEach((img, index) => {
+                const iconStep = Math.min(stepIndex, 7);
+                img.src = `/static/icons/icon_${index}_${iconStep}.png`;
+
+                const base = points[index];
+                const angle = (Math.PI / 4) * index - Math.PI / 2;
+
+                const x = base.x + Math.cos(angle) * offset;
+                const y = base.y + Math.sin(angle) * offset;
+
+                const leftPercent = (x / canvasWidth) * 100;
+                const topPercent = (y / canvasHeight) * 100;
+
+                img.style.left = `${leftPercent}%`;
+                img.style.top = `${topPercent}%`;
+                img.style.width = `${iconSize}px`;
+                img.style.height = 'auto';
+            });
+        }
+
+
+        function drawOctogram() {
+            resizeCanvasAndGeometry();
+            clearCanvas();
+            drawBaseLines();
+            drawActions();
+            drawVertices();
+            drawTempLine();
+            updateVertexIcons(actionCount);
+        }
+
+
+        function getPointIndex(pt) {
+            for (let i = 0; i < points.length; i++) {
+                if (Math.abs(points[i].x - pt.x) < 1e-2 && Math.abs(points[i].y - pt.y) < 1e-2) {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
+        function generatePointInfo(index) {
+            const dataTypes = [
+                ['Chaosem ', 'Światłem ', 'Ogniem ', 'Wodą ', 'Ziemią ', 'Powietrzen ', 'Psychiką ', 'Śmiercią '],
+                ['za K100.', 'za K2.', 'za K4.', 'za K6.', 'za K8.', 'za K10.', 'za K12.', 'za K20.'],
+                ['Losuj ', 'Przemiesc ', 'Zaatakuj ', 'Ulecz ', 'Obroń ', 'Okryj ', 'Pokaż ', 'Zniszcz '],
+                ['Kreacją ', 'Dotykiem ', 'Wybuchem ', 'Plamą ', 'Ścianą', 'Pociskiem ', 'Iluzją', 'Przywołaniem '],
+                ['w zasięgu 9 pól, ', 'w zasięgu 2 pól, ', 'w zasięgu 3 pól, ', 'w zasięgu 4 pól, ',
+                    'w zasięgu 5 pól, ', 'w zasięgu 6 pól, ', 'w zasięgu 7 pól, ', 'w zasięgu 8 pól, ',
+                    'na wyciągnięcie ręki, ' ],
+                ['w obszarze 9 pól, ', 'w obszarze 2 pól, ', 'w obszarze 3 pól, ', 'w obszarze 4 pól, ',
+                    'w obszarze 5 pól, ', 'w obszarze 6 pól, ', 'w obszarze 7 pól, ', 'w obszarze 8 pól, ',
+                    'wokół siebie, '],
+                ['przez następne 9 tur, ', 'przez następne 2 tury, ', 'przez następne 3 tury, ',
+                    'przez następne 4 tury, ', 'przez następne 5 tur, ', 'przez następne 6 tur, ',
+                    'przez następne 7 tur, ', 'przez następne 8 tur, ', 'jednorazowo, '],
+                ['Za 9 tur, ', 'Za 2 tury, ', 'Za 3 tury, ', 'Za 4 tury, ', 'Za 5 tur, ', 'Za 6 tur, ', 'Za 7 tur, ',
+                    'Za 8 tur, ', 'Natychmiast, ']
+            ];
+
+            return dataTypes[index % dataTypes.length];
+        }
+
+        function showHistory() {
+            const historyDiv = document.getElementById('history');
+
+            const customOrder = [7, 6, 5, 4, 3, 2, 0, 1];
+
+            const orderedInfo = customOrder
+                .map(i => pointDataLog[i]?.info ?? '')
+                .join('');
+
+            const spellLine = spellCode.join('');
+
+            historyDiv.innerHTML = `
+                <h2>Całkowity koszt many:</h2>
+                <p style="font-size: 1.5em;">${totalManaCost}</p>
+                <h2>Opis zaklęcia:</h2>
+                <p style="font-size: 1.5em;">${orderedInfo}</p>
+                <h3>Kod zaklęcia:</h3>
+                <p style="font-size: 1.2em;">${spellLine}</p>
+            `;
+        }
+
+        function finalizeDrawing() {
+            actions.forEach(action => {
+                action.color = 'black';
+            });
+
+            document.querySelectorAll('.vertex-icon').forEach(img => {
+                img.style.display = 'none';
+            });
+
+            drawOctogram();
+        }
+
+
+        function resetState() {
+            visitedPoints = [];
+            actions = [];
+            pointDataLog = [];
+            spellCode = [];
+            actionCount = 0;
+            totalManaCost = 0;
+            historyShown = false;
+            lastEndPoint = null;
+            startPoint = null;
+            dragging = false;
+            currentMouse = { x: 0, y: 0 };
+
+            document.getElementById('history').innerHTML = '';
+            document.querySelectorAll('.vertex-icon').forEach(img => {
+                img.style.display = 'block';
+            });
+
+            drawOctogram();
+        }
+
+
+        function getEventOffset(e) {
+            if (e.touches && e.touches.length > 0) {
+                const rect = canvas.getBoundingClientRect();
+                return {
+                    offsetX: e.touches[0].clientX - rect.left,
+                    offsetY: e.touches[0].clientY - rect.top
+                };
+            } else {
+                return { offsetX: e.offsetX, offsetY: e.offsetY };
+            }
+        }
+
+        function onDown(e) {
+            e.preventDefault();
+            const { offsetX, offsetY } = getEventOffset(e);
+            hasDragged = false;
+
+            for (const pt of points) {
+                const dx = pt.x - offsetX;
+                const dy = pt.y - offsetY;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance < 10) {
+                    if (lastEndPoint === null || (pt.x === lastEndPoint.x && pt.y === lastEndPoint.y)) {
+                        startPoint = pt;
+                        dragging = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        function onMove(e) {
+            if (!dragging) return;
+            e.preventDefault();
+            hasDragged = true;
+
+            const { offsetX, offsetY } = getEventOffset(e);
+            currentMouse = { x: offsetX, y: offsetY };
+
+            if (e.touches && e.touches.length > 0) {
+                lastTouchOffset = { offsetX, offsetY };
+            }
+
+            drawOctogram();
+        }
+
+        function onUp(e) {
+            e.preventDefault();
+            if (!dragging || !startPoint) return;
+
+            dragging = false;
+
+            let offsetX, offsetY;
+
+            if (e.type === 'touchend' && lastTouchOffset) {
+                ({ offsetX, offsetY } = lastTouchOffset);
+            } else {
+                ({ offsetX, offsetY } = getEventOffset(e));
+            }
+
+            if (!hasDragged) {
+                handleTap(offsetX, offsetY);
+                startPoint = null;
+                return;
+            }
+
+            if (actionCount >= ACTION_LIMIT) {
+                startPoint = null;
+                drawOctogram();
+                return;
+            }
+
+            for (const pt of points) {
+                const dx = pt.x - offsetX;
+                const dy = pt.y - offsetY;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance < 10 && pt !== startPoint) {
+                    const color = ACTION_COLORS[actionCount];
+                    const from = normalizePoint(startPoint);
+                    const to = normalizePoint(pt);
+                    const index = getPointIndex(pt);
+                    const infoSet = generatePointInfo(actionCount);
+
+                    if (index !== -1) {
+                        pointDataLog.push({
+                            point: pt,
+                            info: infoSet[index]
+                        });
+                    }
+
+                    actions.push({
+                        type: 'line',
+                        from,
+                        to,
+                        color
+                    });
+
+                    lastEndPoint = pt;
+                    visitedPoints.push(pt);
+                    if (index !== -1) totalManaCost += (index === 0 ? 8 : index);
+                    if (index !== -1) spellCode.push(index === 0 ? 8 : index);
+                    actionCount += 1;
+                    break;
+                }
+            }
+
+            startPoint = null;
+            drawOctogram();
+
+            if (actionCount >= ACTION_LIMIT && !historyShown) {
+                showHistory();
+                finalizeDrawing();
+                historyShown = true;
+            }
+        }
+
+        function handleTap(offsetX, offsetY) {
+            if (actionCount >= ACTION_LIMIT || !lastEndPoint) return;
+
+            for (const pt of points) {
+                const dx = pt.x - offsetX;
+                const dy = pt.y - offsetY;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance < 10 && pt.x === lastEndPoint.x && pt.y === lastEndPoint.y) {
+                    const color = ACTION_COLORS[actionCount];
+                    const index = getPointIndex(pt);
+                    const infoSet = generatePointInfo(actionCount);
+
+                    if (index !== -1) {
+                        pointDataLog.push({ point: pt, info: infoSet[index] });
+                        totalManaCost += index === 0 ? 8 : index;
+                        spellCode.push(index === 0 ? 8 : index);
+                    }
+
+                    actions.push({
+                        type: 'marker',
+                        point: normalizePoint(pt),
+                        color
+                    });
+
+                    visitedPoints.push(pt);
+                    actionCount += 1;
+                    drawOctogram();
+
+                    if (actionCount >= ACTION_LIMIT && !historyShown) {
+                        showHistory();
+                        finalizeDrawing();
+                        historyShown = true;
+                    }
+                    break;
+                }
+            }
+        }
+
+        function skipAction() {
+            if (actionCount >= ACTION_LIMIT || historyShown) return;
+
+            if (actionCount < 4) {
+                alert("Aby pominąć, musisz najpierw wykonać co najmniej 4 akcje.");
+                return;
+            }
+
+            const color = ACTION_COLORS[actionCount];
+
+            if (lastEndPoint) {
+                const index = getPointIndex(lastEndPoint);
+                const infoSet = generatePointInfo(actionCount);
+
+                if (index !== -1) {
+                    pointDataLog.push({
+                        point: lastEndPoint,
+                        info: infoSet[8]
+                    });
+                }
+
+                actions.push({
+                    type: 'skip',
+                    color,
+                    point: normalizePoint(lastEndPoint)
+                });
+
+                spellCode.push(0);
+            }
+
+            actionCount += 1;
+
+            if (actionCount >= ACTION_LIMIT && !historyShown) {
+                showHistory();
+                finalizeDrawing();
+                historyShown = true;
+            }
+
+            drawOctogram();
+        }
+
+        canvas.addEventListener('mousedown', onDown);
+        canvas.addEventListener('touchstart', onDown);
+
+        canvas.addEventListener('mousemove', onMove);
+        canvas.addEventListener('touchmove', onMove);
+
+        canvas.addEventListener('mouseup', onUp);
+        canvas.addEventListener('touchend', onUp);
+
+        document.getElementById('resetButton').addEventListener('click', resetState);
+        document.getElementById('skipButton').addEventListener('click', skipAction);
+
+        window.addEventListener('resize', () => {
+            resizeCanvasAndGeometry();
+            drawOctogram();
+            updateVertexIcons(actionCount);
+        });
+
+        resizeCanvasAndGeometry();
+        drawOctogram();
+
+    </script>
+</body>
+</html>
