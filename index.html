@@ -398,7 +398,7 @@
             e.preventDefault();
             const { offsetX, offsetY } = getEventOffset(e);
             hasDragged = false;
-            const touchThreshold = radius * 0.08;
+            const touchThreshold = radius * 0.20;
 
             for (const pt of points) {
                 const dx = pt.x - offsetX;
@@ -437,7 +437,7 @@
             dragging = false;
 
             let offsetX, offsetY;
-            const touchThreshold = radius * 0.08;
+            const touchThreshold = radius * 0.20;
 
             if (e.type === 'touchend' && lastTouchOffset) {
                 ({ offsetX, offsetY } = lastTouchOffset);
@@ -504,7 +504,7 @@
 
         function handleTap(offsetX, offsetY) {
             if (actionCount >= ACTION_LIMIT || !lastEndPoint) return;
-            const touchThreshold = radius * 0.08;
+            const touchThreshold = radius * 0.20;
 
             for (const pt of points) {
                 const dx = pt.x - offsetX;
