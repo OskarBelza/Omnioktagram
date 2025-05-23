@@ -24,6 +24,10 @@
         <button id="resetButton" class="reset-btn">Resetuj</button>
     </div>
     <div id="history" class="history"></div>
+    <div class="button-row">
+        <input type="text" id="spellInput" placeholder="Wprowadź kod zaklęcia (np. 32457061)">
+        <button id="loadSpellButton">Załaduj zaklęcie</button>
+    </div>
 
     <script>
         const canvas = document.getElementById('octogramCanvas');
@@ -241,7 +245,17 @@
             }
         }
 
-        function updateVertexIcons(stepIndex) {
+        function drawOctogram() {
+            resizeCanvasAndGeometry();
+            clearCanvas();
+            drawBaseLines();
+            drawActions();
+            drawVertices();
+            drawTempLine();
+        }
+
+
+                function updateVertexIcons(stepIndex) {
             const icons = document.querySelectorAll('.vertex-icon');
             const canvasWidth = canvas.width / (window.devicePixelRatio || 1);
             const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
@@ -282,17 +296,6 @@
                 img.style.height = 'auto';
             });
         }
-
-
-        function drawOctogram() {
-            resizeCanvasAndGeometry();
-            clearCanvas();
-            drawBaseLines();
-            drawActions();
-            drawVertices();
-            drawTempLine();
-        }
-
 
         function getPointIndex(pt) {
             for (let i = 0; i < points.length; i++) {
@@ -381,6 +384,82 @@
 
             drawOctogram();
             updateVertexIcons(actionCount);
+        }
+
+        function loadSpellFromCode(code) {
+            resetState();
+
+            const digits = code.split('').map(d => parseInt(d, 10));
+
+            if (digits.length !== 8 || digits.some(d => isNaN(d) || d < 0 || d > 9)) {
+                alert("Kod zaklęcia musi zawierać dokładnie 8 cyfr od 0 do 9.");
+                return;
+            }
+
+            let currentPoint = points[0];
+            lastEndPoint = currentPoint;
+
+            for (let i = 0; i < digits.length; i++) {
+                const val = digits[i];
+                const prevVal = i > 0 ? digits[i - 1] : null;
+                const color = ACTION_COLORS[i];
+                const infoSet = generatePointInfo(i);
+
+                if (i === 0 && val === 8) {
+                    pointDataLog.push({ point: currentPoint, info: infoSet[7] });
+                    spellCode.push(8);
+                    totalManaCost += 8;
+                    actions.push({
+                        type: 'marker',
+                        color,
+                        point: normalizePoint(currentPoint)
+                    });
+                } else if (val === 0) {
+                    pointDataLog.push({ point: currentPoint, info: infoSet[8] });
+                    spellCode.push(0);
+                    actions.push({
+                        type: 'skip',
+                        color,
+                        point: normalizePoint(currentPoint)
+                    });
+                } else {
+                    const mappedIndex = (val === 8) ? 0 : val;
+
+                    if (mappedIndex < 0 || mappedIndex > 7) continue;
+
+                    const targetPoint = points[mappedIndex];
+                    const manaCost = (val === 8) ? 8 : val;
+
+                    if (val === prevVal) {
+                        pointDataLog.push({ point: currentPoint, info: infoSet[mappedIndex] });
+                        spellCode.push(val);
+                        totalManaCost += manaCost;
+                        actions.push({
+                            type: 'marker',
+                            color,
+                            point: normalizePoint(currentPoint)
+                        });
+                    } else {
+                        pointDataLog.push({ point: targetPoint, info: infoSet[mappedIndex] });
+                        spellCode.push(val);
+                        totalManaCost += manaCost;
+                        actions.push({
+                            type: 'line',
+                            color,
+                            from: normalizePoint(currentPoint),
+                            to: normalizePoint(targetPoint)
+                        });
+
+                        currentPoint = targetPoint;
+                        lastEndPoint = targetPoint;
+                    }
+                }
+
+                actionCount += 1;
+            }
+
+            showHistory();
+            finalizeDrawing();
         }
 
 
@@ -607,6 +686,10 @@
 
         document.getElementById('resetButton').addEventListener('click', resetState);
         document.getElementById('skipButton').addEventListener('click', skipAction);
+        document.getElementById('loadSpellButton').addEventListener('click', () => {
+            const code = document.getElementById('spellInput').value.trim();
+            loadSpellFromCode(code);
+        });
 
         window.addEventListener('resize', () => {
             resizeCanvasAndGeometry();

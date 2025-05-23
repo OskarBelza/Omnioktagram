@@ -103,3 +103,15 @@ button:hover {
     pointer-events: none;
     z-index: 2;
 }
+
+#spellInput {
+    all: unset;
+    background-color: #222;
+    color: white;
+    border: 1px solid #888;
+    padding: 12px;
+    font-size: 16px;
+    width: 100%;
+    flex: 1 1 100%;
+    box-sizing: border-box;
+}
