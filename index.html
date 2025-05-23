@@ -398,13 +398,14 @@
             e.preventDefault();
             const { offsetX, offsetY } = getEventOffset(e);
             hasDragged = false;
+            const touchThreshold = radius * 0.08;
 
             for (const pt of points) {
                 const dx = pt.x - offsetX;
                 const dy = pt.y - offsetY;
                 const distance = Math.sqrt(dx * dx + dy * dy);
 
-                if (distance < 10) {
+                if (distance < touchThreshold) {
                     if (lastEndPoint === null || (pt.x === lastEndPoint.x && pt.y === lastEndPoint.y)) {
                         startPoint = pt;
                         dragging = true;
@@ -436,6 +437,7 @@
             dragging = false;
 
             let offsetX, offsetY;
+            const touchThreshold = radius * 0.08;
 
             if (e.type === 'touchend' && lastTouchOffset) {
                 ({ offsetX, offsetY } = lastTouchOffset);
@@ -460,7 +462,7 @@
                 const dy = pt.y - offsetY;
                 const distance = Math.sqrt(dx * dx + dy * dy);
 
-                if (distance < 10 && pt !== startPoint) {
+                if (distance < touchThreshold && pt !== startPoint) {
                     const color = ACTION_COLORS[actionCount];
                     const from = normalizePoint(startPoint);
                     const to = normalizePoint(pt);
@@ -502,13 +504,14 @@
 
         function handleTap(offsetX, offsetY) {
             if (actionCount >= ACTION_LIMIT || !lastEndPoint) return;
+            const touchThreshold = radius * 0.08;
 
             for (const pt of points) {
                 const dx = pt.x - offsetX;
                 const dy = pt.y - offsetY;
                 const distance = Math.sqrt(dx * dx + dy * dy);
 
-                if (distance < 10 && pt.x === lastEndPoint.x && pt.y === lastEndPoint.y) {
+                if (distance < touchThreshold && pt.x === lastEndPoint.x && pt.y === lastEndPoint.y) {
                     const color = ACTION_COLORS[actionCount];
                     const index = getPointIndex(pt);
                     const infoSet = generatePointInfo(actionCount);
