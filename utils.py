@@ -93,8 +93,12 @@ def create_text_icon(text, font_path, font_size=36, text_color=(0, 0, 0, 255)):
 
 
 font_path = "static/fonts/Centurion.ttf"
-for idx in range(8):
-    icon = create_text_icon(f"{idx + 2}", font_path, text_color=COLORS["jasny brązowy"])
-    icon.save(f"static/icons/icon_{idx}_6.png", format="PNG")
+#for idx in range(8):
+#    icon = create_text_icon(f"{idx + 2}", font_path, text_color=COLORS["czarny"])
+#    icon.save(f"static/icons/icon_{idx + 1}_7.png", format="PNG")
 
+for idx in range(4, 8):
+    old_name = f"static/icons/icon_8_{idx}.png"
+    new_name = f"static/icons/icon_0_{idx}.png"
+    os.rename(old_name, new_name)
 
