@@ -291,7 +291,6 @@
             drawActions();
             drawVertices();
             drawTempLine();
-            updateVertexIcons(actionCount);
         }
 
 
@@ -381,6 +380,7 @@
             });
 
             drawOctogram();
+            updateVertexIcons(actionCount);
         }
 
 
@@ -408,7 +408,9 @@
                 const distance = Math.sqrt(dx * dx + dy * dy);
 
                 if (distance < touchThreshold) {
-                    if (lastEndPoint === null || (pt.x === lastEndPoint.x && pt.y === lastEndPoint.y)) {
+                    const isFirstAction = actionCount === 0;
+                    const isStartAllowed = isFirstAction ? pt === points[0] : (lastEndPoint === null || (pt.x === lastEndPoint.x && pt.y === lastEndPoint.y));
+                    if (isStartAllowed) {
                         startPoint = pt;
                         dragging = true;
                         break;
@@ -496,6 +498,7 @@
 
             startPoint = null;
             drawOctogram();
+            updateVertexIcons(actionCount);
 
             if (actionCount >= ACTION_LIMIT && !historyShown) {
                 showHistory();
@@ -505,7 +508,12 @@
         }
 
         function handleTap(offsetX, offsetY) {
-            if (actionCount >= ACTION_LIMIT || !lastEndPoint) return;
+            if (actionCount >= ACTION_LIMIT) return;
+
+            const isFirstAction = actionCount === 0;
+            const allowedTapPoint = isFirstAction ? points[0] : lastEndPoint;
+            if (!allowedTapPoint) return;
+
             const touchThreshold = radius * 0.20;
 
             for (const pt of points) {
@@ -513,7 +521,7 @@
                 const dy = pt.y - offsetY;
                 const distance = Math.sqrt(dx * dx + dy * dy);
 
-                if (distance < touchThreshold && pt.x === lastEndPoint.x && pt.y === lastEndPoint.y) {
+                if (distance < touchThreshold && pt.x === allowedTapPoint.x && pt.y === allowedTapPoint.y) {
                     const color = ACTION_COLORS[actionCount];
                     const index = getPointIndex(pt);
                     const infoSet = generatePointInfo(actionCount);
@@ -531,8 +539,10 @@
                     });
 
                     visitedPoints.push(pt);
+                    lastEndPoint = pt;
                     actionCount += 1;
                     drawOctogram();
+                    updateVertexIcons(actionCount);
 
                     if (actionCount >= ACTION_LIMIT && !historyShown) {
                         showHistory();
@@ -583,6 +593,7 @@
             }
 
             drawOctogram();
+            updateVertexIcons(actionCount);
         }
 
         canvas.addEventListener('mousedown', onDown);
@@ -605,6 +616,7 @@
 
         resizeCanvasAndGeometry();
         drawOctogram();
+        updateVertexIcons(actionCount);
 
     </script>
 </body>
