@@ -137,6 +137,10 @@ button:hover {
     text-shadow: 0 0 2px black;
 }
 
+.hidden {
+  display: none !important;
+}
+
 
 #spellInput {
     all: unset;
