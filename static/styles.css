@@ -8,6 +8,15 @@ body {
     overflow-x: hidden;
 }
 
+#top-text-container {
+    color: white;
+    font-size: 1.5em;
+    font-weight: bold;
+    margin: 0 auto 12px;
+    max-width: 90vw;
+    text-align: center;
+}
+
 .canvas-container {
     position: relative;
     margin: 0 auto;

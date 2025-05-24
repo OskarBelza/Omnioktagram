@@ -14,6 +14,7 @@
 </head>
 <body>
     <h1>Omnioktagram</h1>
+    <div id="top-text-container">Tutaj pojawi się tekst</div>
     <div class="canvas-container">
         <canvas id="octogramCanvas"></canvas>
         <div class="vertex-icon" data-index="0"></div>
@@ -284,6 +285,21 @@
             const cssWidth = canvas.clientWidth;
             const cssHeight = canvas.clientHeight;
 
+            const stepTitles = [
+                "NATURA",
+                "MOC",
+                "EFEKT",
+                "FORMA",
+                "ODLEGLOŚĆ",
+                "OBSZAR",
+                "CZAS TRWANIA",
+                "OPÓŹNIENIE"
+            ];
+            const titleEl = document.getElementById("top-text-container");
+            if (titleEl && stepIndex >= 0 && stepIndex < stepTitles.length) {
+                titleEl.textContent = stepTitles[stepIndex];
+            }
+
             icons.forEach((el, index) => {
                 const base = points[index];
                 const angle = (Math.PI / 4) * index - Math.PI / 2;
@@ -320,6 +336,7 @@
                 }
             });
         }
+
 
         function getPointIndex(pt) {
             for (let i = 0; i < points.length; i++) {
@@ -383,6 +400,7 @@
             document.querySelectorAll('.vertex-icon').forEach(img => {
                 img.classList.add('hidden');
             });
+            document.getElementById("top-text-container").classList.add("hidden");
 
             drawOctogram();
         }
@@ -405,6 +423,7 @@
             document.querySelectorAll('.vertex-icon').forEach(img => {
                 img.classList.remove('hidden');
             });
+            document.getElementById("top-text-container").classList.remove("hidden");
 
             drawOctogram();
             updateVertexIcons(actionCount);
