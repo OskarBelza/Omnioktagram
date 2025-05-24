@@ -88,6 +88,7 @@
         let lastTouchOffset = null;
 
         const ACTION_LIMIT = 8;
+        const toggleThemeBtn = document.getElementById('toggleTheme');
         const ACTION_COLORS = [
             'yellow',
             'red',
@@ -262,6 +263,11 @@
             drawActions();
             drawVertices();
             drawTempLine();
+        }
+
+        function updateThemeIcon() {
+            const isLight = document.body.classList.contains('light-mode');
+            toggleThemeBtn.textContent = isLight ? '🌙' : '🌞';
         }
 
         function updateVertexIcons(stepIndex) {
@@ -736,13 +742,18 @@
             const code = document.getElementById('spellInput').value.trim();
             loadSpellFromCode(code);
         });
-        document.getElementById('toggleTheme').addEventListener('click', () => {
-            document.body.classList.toggle('light-mode');
-        });
+
         window.addEventListener('resize', () => {
             resizeCanvasAndGeometry();
             drawOctogram();
             updateVertexIcons(actionCount);
+        });
+
+        updateThemeIcon();
+
+        toggleThemeBtn.addEventListener('click', () => {
+            document.body.classList.toggle('light-mode');
+            updateThemeIcon();
         });
 
         resizeCanvasAndGeometry();
