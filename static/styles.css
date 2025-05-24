@@ -98,11 +98,45 @@ button:hover {
 
 .vertex-icon {
     position: absolute;
-    height: auto;
     transform: translate(-50%, -50%);
     pointer-events: none;
     z-index: 2;
+    font-family: 'Centurion', sans-serif;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    text-shadow: 0 0 2px black;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
 }
+
+.vertex-icon.step-2 { color: dodgerblue; }
+.vertex-icon.step-3 { color: green; }
+.vertex-icon.step-4 { color: turquoise; }
+.vertex-icon.step-5 { color: magenta; }
+.vertex-icon.step-6 { color: saddlebrown; }
+.vertex-icon.step-7 { color: black; }
+
+
+.vertex-icon img {
+    max-width: 100%;
+    height: auto;
+}
+
+.vertex-label {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 2;
+    font-family: 'Centurion', sans-serif;
+    font-weight: bold;
+    color: white;
+    text-shadow: 0 0 2px black;
+}
+
 
 #spellInput {
     all: unset;

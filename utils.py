@@ -92,13 +92,28 @@ def create_text_icon(text, font_path, font_size=36, text_color=(0, 0, 0, 255)):
     return image
 
 
-font_path = "static/fonts/Centurion.ttf"
+#labels = ["Losuj", "Przemiesc", "Zaatakuj", "Ulecz", "Obron", "Okryj", "Pokaz", "Zniszcz"]
+#font_path = "static/fonts/Centurion.ttf"
 #for idx in range(8):
 #    icon = create_text_icon(f"{idx + 2}", font_path, text_color=COLORS["czarny"])
 #    icon.save(f"static/icons/icon_{idx + 1}_7.png", format="PNG")
 
-for idx in range(4, 8):
-    old_name = f"static/icons/icon_8_{idx}.png"
-    new_name = f"static/icons/icon_0_{idx}.png"
-    os.rename(old_name, new_name)
+#for idx in range(4, 8):
+#    old_name = f"static/icons/icon_8_{idx}.png"
+#    new_name = f"static/icons/icon_0_{idx}.png"
+#    os.rename(old_name, new_name)
 
+
+def remove_icon_files(folder_path):
+    for i in range(8):  # 0-7
+        for j in range(2, 8):  # 2-7
+            filename = f"icon_{i}_{j}.png"
+            full_path = os.path.join(folder_path, filename)
+            if os.path.isfile(full_path):
+                os.remove(full_path)
+                print(f"Usunięto: {filename}")
+            else:
+                print(f"Nie znaleziono: {filename}")
+
+# Użycie:
+remove_icon_files("static/icons")
