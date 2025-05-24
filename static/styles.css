@@ -231,13 +231,13 @@ body.light-mode .vertex-icon {
     color: #111;
 }
 
-body.light-mode .vertex-icon.step-2 { color: dodgerblue; }
-body.light-mode .vertex-icon.step-3 { color: green; }
-body.light-mode .vertex-icon.step-4 { color: turquoise; }
-body.light-mode .vertex-icon.step-5 { color: magenta; }
-body.light-mode .vertex-icon.step-6 { color: saddlebrown; }
-body.light-mode .vertex-icon.step-7 { color: black; }
-
+body.light-mode .vertex-icon.step-0 { filter: brightness(0.65) sepia(0.1);}
+body.light-mode .vertex-icon.step-2 { color: #267abf; }
+body.light-mode .vertex-icon.step-3 { color: #2e7d32; }
+body.light-mode .vertex-icon.step-4 { color: #339999; }
+body.light-mode .vertex-icon.step-5 { color: #a04a92; }
+body.light-mode .vertex-icon.step-6 { color: #6b4c3b; }
+body.light-mode .vertex-icon.step-7 { color: #222; }
 body.light-mode .vertex-label {
     color: #222;
     text-shadow: none;
@@ -249,4 +249,25 @@ body.light-mode #spellInput {
     border-color: #777;
 }
 
+:root {
+  --color-action-0: yellow;
+  --color-action-1: red;
+  --color-action-2: DodgerBlue;
+  --color-action-3: green;
+  --color-action-4: turquoise;
+  --color-action-5: magenta;
+  --color-action-6: #994C00;
+  --color-action-7: black;
+}
+
+body.light-mode {
+  --color-action-0: #c2b200;
+  --color-action-1: #b22222;
+  --color-action-2: #3366cc;
+  --color-action-3: #2e7d32;
+  --color-action-4: #339999;
+  --color-action-5: #a04a92;
+  --color-action-6: #6b4c3b;
+  --color-action-7: #222;
+}
 

@@ -89,17 +89,11 @@
 
         const ACTION_LIMIT = 8;
         const toggleThemeBtn = document.getElementById('toggleTheme');
-        const ACTION_COLORS = [
-            'yellow',
-            'red',
-            'blue',
-            'green',
-            'turquoise',
-            'magenta',
-            '#994C00',
-            'black'
-        ];
 
+        function getActionColor(index) {
+            const variable = getComputedStyle(document.body).getPropertyValue(`--color-action-${index}`);
+            return variable.trim() || 'black';
+        }
 
         function normalizePoint(p) {
             return { x: p.x / canvas.width, y: p.y / canvas.height };
@@ -454,7 +448,7 @@
             for (let i = 0; i < digits.length; i++) {
                 const val = digits[i];
                 const prevVal = i > 0 ? digits[i - 1] : null;
-                const color = ACTION_COLORS[i];
+                const color = getActionColor(actionCount);
                 const infoSet = generatePointInfo(i);
 
                 if (i === 0 && val === 8) {
@@ -598,7 +592,7 @@
                 const distance = Math.sqrt(dx * dx + dy * dy);
 
                 if (distance < touchThreshold && (pt.x !== startPoint.x || pt.y !== startPoint.y)) {
-                    const color = ACTION_COLORS[actionCount];
+                    const color = getActionColor(actionCount);
                     const from = normalizePoint(startPoint);
                     const to = normalizePoint(pt);
                     const index = getPointIndex(pt);
@@ -653,7 +647,7 @@
                 const distance = Math.sqrt(dx * dx + dy * dy);
 
                 if (distance < touchThreshold && pt.x === allowedTapPoint.x && pt.y === allowedTapPoint.y) {
-                    const color = ACTION_COLORS[actionCount];
+                    const color = getActionColor(actionCount);
                     const index = getPointIndex(pt);
                     const infoSet = generatePointInfo(actionCount);
 
@@ -693,7 +687,7 @@
                 return;
             }
 
-            const color = ACTION_COLORS[actionCount];
+            const color = getActionColor(actionCount);
 
             if (lastEndPoint) {
                 const index = getPointIndex(lastEndPoint);
@@ -754,6 +748,7 @@
         toggleThemeBtn.addEventListener('click', () => {
             document.body.classList.toggle('light-mode');
             updateThemeIcon();
+            drawOctogram();
         });
 
         resizeCanvasAndGeometry();
