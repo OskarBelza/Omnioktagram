@@ -162,3 +162,91 @@ button:hover {
     flex: 1 1 100%;
     box-sizing: border-box;
 }
+
+.theme-toggle {
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    z-index: 100;
+    background-color: #444;
+    color: white;
+    border: 1px solid #888;
+    padding: 6px 10px;
+    font-size: 1.2em;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.theme-toggle:hover {
+    background-color: #666;
+}
+
+body.light-mode .theme-toggle {
+    background-color: #b5b5b5;
+    color: #111;
+    border-color: #777;
+}
+body.light-mode .theme-toggle:hover {
+    background-color: #999;
+}
+
+
+body.light-mode {
+    background-color: #dcdcdc;
+    color: #222;
+}
+
+body.light-mode #top-text-container {
+    color: #111;
+}
+
+body.light-mode canvas {
+    background-color: #c0c0c0;
+    border-color: #555;
+}
+
+body.light-mode .history {
+    background-color: rgba(240, 240, 240, 0.9);
+    color: #222;
+    border-color: #777;
+}
+
+body.light-mode .button-row {
+    /* nic nie zmieniamy – układ zostaje, kolory są w przyciskach */
+}
+
+body.light-mode button {
+    background-color: #b5b5b5;
+    color: #111;
+    border-color: #777;
+}
+
+body.light-mode button:hover {
+    background-color: #999;
+}
+
+body.light-mode .vertex-icon {
+    text-shadow: none;
+    color: #111;
+}
+
+body.light-mode .vertex-icon.step-2 { color: dodgerblue; }
+body.light-mode .vertex-icon.step-3 { color: green; }
+body.light-mode .vertex-icon.step-4 { color: turquoise; }
+body.light-mode .vertex-icon.step-5 { color: magenta; }
+body.light-mode .vertex-icon.step-6 { color: saddlebrown; }
+body.light-mode .vertex-icon.step-7 { color: black; }
+
+body.light-mode .vertex-label {
+    color: #222;
+    text-shadow: none;
+}
+
+body.light-mode #spellInput {
+    background-color: #f0f0f0;
+    color: #111;
+    border-color: #777;
+}
+
+

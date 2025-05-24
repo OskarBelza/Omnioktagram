@@ -13,6 +13,9 @@
     </style>
 </head>
 <body>
+    <button id="toggleTheme" class="theme-toggle" title="Przełącz tryb">
+        🌗
+    </button>
     <h1>Omnioktagram</h1>
     <div id="top-text-container">Tutaj pojawi się tekst</div>
     <div class="canvas-container">
@@ -733,7 +736,9 @@
             const code = document.getElementById('spellInput').value.trim();
             loadSpellFromCode(code);
         });
-
+        document.getElementById('toggleTheme').addEventListener('click', () => {
+            document.body.classList.toggle('light-mode');
+        });
         window.addEventListener('resize', () => {
             resizeCanvasAndGeometry();
             drawOctogram();
