@@ -115,5 +115,4 @@ def remove_icon_files(folder_path):
             else:
                 print(f"Nie znaleziono: {filename}")
 
-# Użycie:
-remove_icon_files("static/icons")
+#remove_icon_files("static/icons")
