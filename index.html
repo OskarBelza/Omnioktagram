@@ -90,7 +90,6 @@
 
         const ACTION_LIMIT = 8;
         const toggleThemeBtn = document.getElementById('toggleTheme');
-        const connectionMap = new Map();
 
         function getActionColor(index) {
             const variable = getComputedStyle(document.body).getPropertyValue(`--color-action-${index}`);
@@ -237,7 +236,6 @@
                 }
             }
         }
-
 
         function drawVertices() {
             const vertexRadius = radius * 0.03;
@@ -777,7 +775,6 @@
             }
 
             drawOctogram();
-            updateVertexIcons(actionCount);
         }
 
         canvas.addEventListener('mousedown', onDown);
