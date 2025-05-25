@@ -131,26 +131,20 @@
         }
 
         function drawActions() {
-            const pointCounts = {};
-            actions.forEach(action => {
-                if (action.type === 'marker' || action.type === 'skip') {
-                    const key = `${action.point.x},${action.point.y}`;
-                    pointCounts[key] = (pointCounts[key] || 0) + 1;
-                }
-            });
-
+            const markerCounts = {};
             const currentCount = {};
 
             for (const action of actions) {
                 if (action.type === 'line') {
-                    const from = denormalizePoint(action.from);
-                    const to = denormalizePoint(action.to);
-
                     const fromKey = `${action.from.x},${action.from.y}`;
-                    const count = pointCounts[fromKey] || 0;
+                    const to = denormalizePoint(action.to);
+                    const from = denormalizePoint(action.from);
+
+                    const count = markerCounts[fromKey] || 0;
                     const dx = to.x - from.x;
                     const dy = to.y - from.y;
                     const length = Math.sqrt(dx * dx + dy * dy);
+
                     let offsetX = 0, offsetY = 0;
 
                     const baseRingRadius = radius * 0.07;
@@ -193,9 +187,11 @@
                     ctx.setLineDash([]);
 
                     currentCount[key] = ringIndex + 1;
+                    markerCounts[key] = (markerCounts[key] || 0) + 1;
                 }
             }
         }
+
 
         function drawVertices() {
             const vertexRadius = radius * 0.03;
@@ -509,6 +505,21 @@
             finalizeDrawing();
         }
 
+        function disableScroll() {
+            document.body.style.overflow = 'hidden';
+            document.body.style.touchAction = 'none';
+            document.body.addEventListener('touchmove', preventDefault, { passive: false });
+        }
+
+        function enableScroll() {
+            document.body.style.overflow = '';
+            document.body.style.touchAction = '';
+            document.body.removeEventListener('touchmove', preventDefault);
+        }
+
+        function preventDefault(e) {
+            e.preventDefault();
+        }
 
         function getEventOffset(e) {
             if (e.touches && e.touches.length > 0) {
@@ -524,6 +535,7 @@
 
         function onDown(e) {
             e.preventDefault();
+            disableScroll();
             const { offsetX, offsetY } = getEventOffset(e);
             hasDragged = false;
             const touchThreshold = radius * 0.20;
@@ -625,6 +637,7 @@
             startPoint = null;
             drawOctogram();
             updateVertexIcons(actionCount);
+            enableScroll();
 
             if (actionCount >= ACTION_LIMIT && !historyShown) {
                 showHistory();
