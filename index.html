@@ -506,14 +506,12 @@
         }
 
         function disableScroll() {
-            document.body.style.overflow = 'hidden';
-            document.body.style.touchAction = 'none';
+            canvas.style.touchAction = 'none';
             document.body.addEventListener('touchmove', preventDefault, { passive: false });
         }
 
         function enableScroll() {
-            document.body.style.overflow = '';
-            document.body.style.touchAction = '';
+            canvas.style.touchAction = '';
             document.body.removeEventListener('touchmove', preventDefault);
         }
 
@@ -590,12 +588,14 @@
             if (!hasDragged) {
                 handleTap(offsetX, offsetY);
                 startPoint = null;
+                enableScroll();
                 return;
             }
 
             if (actionCount >= ACTION_LIMIT) {
                 startPoint = null;
                 drawOctogram();
+                enableScroll();
                 return;
             }
 
@@ -638,6 +638,7 @@
             drawOctogram();
             updateVertexIcons(actionCount);
             enableScroll();
+
 
             if (actionCount >= ACTION_LIMIT && !historyShown) {
                 showHistory();
