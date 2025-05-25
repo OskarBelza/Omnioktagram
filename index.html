@@ -90,6 +90,7 @@
 
         const ACTION_LIMIT = 8;
         const toggleThemeBtn = document.getElementById('toggleTheme');
+        const connectionMap = new Map();
 
         function getActionColor(index) {
             const variable = getComputedStyle(document.body).getPropertyValue(`--color-action-${index}`);
@@ -133,39 +134,84 @@
         function drawActions() {
             const markerCounts = {};
             const currentCount = {};
+            const connectionMap = {};
 
             for (const action of actions) {
                 if (action.type === 'line') {
-                    const fromKey = `${action.from.x},${action.from.y}`;
+                    let from = denormalizePoint(action.from);
                     const to = denormalizePoint(action.to);
-                    const from = denormalizePoint(action.from);
 
-                    const count = markerCounts[fromKey] || 0;
-                    const dx = to.x - from.x;
-                    const dy = to.y - from.y;
-                    const length = Math.sqrt(dx * dx + dy * dy);
+                    const fromKey = `${from.x},${from.y}`;
+                    let markerCount = 0;
 
-                    let offsetX = 0, offsetY = 0;
-
-                    const baseRingRadius = radius * 0.07;
-                    const ringSpacing = radius * 0.035;
-                    const arcRadius = baseRingRadius + (count - 1) * ringSpacing;
-
-                    if (length > 0 && count > 0) {
-                        const unitX = dx / length;
-                        const unitY = dy / length;
-                        offsetX = unitX * arcRadius;
-                        offsetY = unitY * arcRadius;
+                    const actionIndex = actions.indexOf(action);
+                    for (let i = 0; i < actionIndex; i++) {
+                        const a = actions[i];
+                        if ((a.type === 'marker' || a.type === 'skip')) {
+                            const pt = denormalizePoint(a.point);
+                            if (Math.abs(pt.x - from.x) < 1e-2 && Math.abs(pt.y - from.y) < 1e-2) {
+                                markerCount++;
+                            }
+                        }
                     }
 
+
+                    if (markerCount > 0) {
+                        const dx = to.x - from.x;
+                        const dy = to.y - from.y;
+                        const length = Math.sqrt(dx * dx + dy * dy);
+                        if (length > 0) {
+                            const unitX = dx / length;
+                            const unitY = dy / length;
+
+                            const baseRingRadius = radius * 0.07;
+                            const ringSpacing = radius * 0.035;
+                            const arcRadius = baseRingRadius + (markerCount - 1) * ringSpacing;
+
+                            from.x += unitX * arcRadius;
+                            from.y += unitY * arcRadius;
+                        }
+                    }
+
+                    const indexFrom = getPointIndex(denormalizePoint(action.from));
+                    const indexTo = getPointIndex(denormalizePoint(action.to));
+                    if (indexFrom === -1 || indexTo === -1) continue;
+
+                    const key = [indexFrom, indexTo].sort().join('-');
+                    if (!connectionMap[key]) connectionMap[key] = [];
+                    connectionMap[key].push({ action, from, to });
+                }
+            }
+
+            for (const key in connectionMap) {
+                const group = connectionMap[key];
+                const [indexA, indexB] = key.split('-').map(Number);
+                const ptA = points[indexA];
+                const ptB = points[indexB];
+                const dx = ptB.x - ptA.x;
+                const dy = ptB.y - ptA.y;
+                const mid = { x: (ptA.x + ptB.x) / 2, y: (ptA.y + ptB.y) / 2 };
+                const length = Math.sqrt(dx * dx + dy * dy);
+                const nx = -dy / length;
+                const ny = dx / length;
+
+                const baseOffset = radius * 0.15;
+
+                group.forEach((item, i) => {
+                    const curveOffset = (i - (group.length - 1) / 2) * baseOffset;
+                    const cx = mid.x + nx * curveOffset;
+                    const cy = mid.y + ny * curveOffset;
+
                     ctx.beginPath();
-                    ctx.moveTo(from.x + offsetX, from.y + offsetY);
-                    ctx.lineTo(to.x, to.y);
-                    ctx.strokeStyle = action.color;
+                    ctx.moveTo(item.from.x, item.from.y);
+                    ctx.quadraticCurveTo(cx, cy, item.to.x, item.to.y);
+                    ctx.strokeStyle = item.action.color;
                     ctx.lineWidth = radius * 0.012;
                     ctx.stroke();
-                }
+                });
+            }
 
+            for (const action of actions) {
                 if (action.type === 'marker' || action.type === 'skip') {
                     const point = denormalizePoint(action.point);
                     const key = `${action.point.x},${action.point.y}`;
@@ -572,6 +618,7 @@
 
         function onUp(e) {
             e.preventDefault();
+            enableScroll();
             if (!dragging || !startPoint) return;
 
             dragging = false;
@@ -588,14 +635,12 @@
             if (!hasDragged) {
                 handleTap(offsetX, offsetY);
                 startPoint = null;
-                enableScroll();
                 return;
             }
 
             if (actionCount >= ACTION_LIMIT) {
                 startPoint = null;
                 drawOctogram();
-                enableScroll();
                 return;
             }
 
@@ -637,7 +682,6 @@
             startPoint = null;
             drawOctogram();
             updateVertexIcons(actionCount);
-            enableScroll();
 
 
             if (actionCount >= ACTION_LIMIT && !historyShown) {
