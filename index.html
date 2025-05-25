@@ -1,17 +1,10 @@
 <!DOCTYPE html>
 <html lang="pl">
-<link rel="preload" href="static/fonts/Centurion.ttf" as="font" type="font/ttf" crossorigin="anonymous">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Omnioktagram</title>
     <link rel="stylesheet" href="static/styles.css">
-    <style>
-    @font-face {
-      font-family: 'Centurion';
-      src: url('static/fonts/Centurion.ttf') format('truetype');
-    }
-    </style>
 </head>
 <body>
     <button id="toggleTheme" class="theme-toggle" title="Przełącz tryb">
@@ -205,7 +198,7 @@
                     ctx.moveTo(item.from.x, item.from.y);
                     ctx.quadraticCurveTo(cx, cy, item.to.x, item.to.y);
                     ctx.strokeStyle = item.action.color;
-                    ctx.lineWidth = radius * 0.012;
+                    ctx.lineWidth = radius * 0.017;
                     ctx.stroke();
                 });
             }
@@ -227,7 +220,7 @@
 
                     ctx.arc(point.x, point.y, arcRadius, 0, 2 * Math.PI);
                     ctx.strokeStyle = action.color;
-                    ctx.lineWidth = action.type === 'skip' ? radius * 0.009 : radius * 0.012;
+                    ctx.lineWidth = action.type === 'skip' ? radius * 0.012 : radius * 0.015;
                     ctx.stroke();
                     ctx.setLineDash([]);
 
@@ -269,7 +262,7 @@
                 const baseRingRadius = radius * 0.07;
                 const ringSpacing = radius * 0.035;
                 const arcRadius = baseRingRadius + (markerCount - 1) * ringSpacing;
-                const lineWidth = radius * 0.012;
+                const lineWidth = radius * 0.015;
 
                 if (markerCount > 0) {
                     const dx = currentMouse.x - fromX;
@@ -308,18 +301,18 @@
         function updateVertexIcons(stepIndex) {
             const icons = document.querySelectorAll('.vertex-icon');
 
-            const offset = radius * 0.20;
+            const offset = radius * 0.24;
             const baseIconSize = radius * 0.18;
 
             const stepScaling = {
                 0: 1.3,
                 1: 1.3,
-                2: 1.2,
-                3: 1.2,
-                4: 1.5,
-                5: 1.5,
-                6: 1.5,
-                7: 1.5
+                2: 1.1,
+                3: 1.1,
+                4: 1.7,
+                5: 1.7,
+                6: 1.7,
+                7: 1.7
             };
 
             const scale = stepScaling[stepIndex] ?? 1.0;
@@ -371,7 +364,7 @@
                     } else if (stepIndex === 3) {
                         el.textContent = ["Kreacja", "Dotyk", "Wybuch", "Plama", "Sciana", "Pocisk", "Iluzja", "Przywolanie"][index];
                     } else {
-                        el.textContent = `${index + 2}`;
+                        el.textContent = index === 0 ? '9' : `${index + 1}`;
                     }
                     el.style.backgroundImage = 'none';
                 } else {
@@ -380,7 +373,6 @@
                 }
             });
         }
-
 
         function getPointIndex(pt) {
             for (let i = 0; i < points.length; i++) {
@@ -448,7 +440,6 @@
 
             drawOctogram();
         }
-
 
         function resetState() {
             visitedPoints = [];
@@ -580,7 +571,7 @@
             disableScroll();
             const { offsetX, offsetY } = getEventOffset(e);
             hasDragged = false;
-            const touchThreshold = radius * 0.30;
+            const touchThreshold = radius * 0.70;
 
             for (const pt of points) {
                 const dx = pt.x - offsetX;
