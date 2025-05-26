@@ -6,21 +6,15 @@ export function clearCanvas(ctx, canvas) {
 }
 
 export function drawBaseLines(ctx, points, center, radius) {
-    ctx.strokeStyle = 'white';
-    ctx.lineWidth = radius * CONFIG.BASE_LINE_WIDTH_SCALE;
+    setStroke(ctx, 'white', radius * CONFIG.BASE_LINE_WIDTH_SCALE);
 
     for (let i = 0; i < points.length; i++) {
         for (let j = i + 1; j < points.length; j++) {
-            ctx.beginPath();
-            ctx.moveTo(points[i].x, points[i].y);
-            ctx.lineTo(points[j].x, points[j].y);
-            ctx.stroke();
+            drawLine(ctx, points[i], points[j]);
         }
     }
 
-    ctx.beginPath();
-    ctx.arc(center.x, center.y, radius, 0, 2 * Math.PI);
-    ctx.stroke();
+    drawCircle(ctx, center, radius);
 }
 
 export function drawVertices(ctx, points, radius) {
@@ -28,93 +22,134 @@ export function drawVertices(ctx, points, radius) {
     const lineWidth = radius * CONFIG.VERTEX_LINE_WIDTH_SCALE;
 
     for (const pt of points) {
-        ctx.beginPath();
-        ctx.arc(pt.x, pt.y, vertexRadius, 0, 2 * Math.PI);
-        ctx.strokeStyle = 'white';
-        ctx.lineWidth = lineWidth;
-        ctx.stroke();
+        setStroke(ctx, 'white', lineWidth);
+        drawCircle(ctx, pt, vertexRadius);
     }
 }
 
 export function drawTempLine(ctx, dragging, startPoint, currentMouse, actions, radius) {
     if (!dragging || !startPoint) return;
 
-    let fromX = startPoint.x;
-    let fromY = startPoint.y;
-    const fromKey = `${startPoint.x},${startPoint.y}`;
-    let markerCount = actions.filter(a =>
-        (a.type === 'marker' || a.type === 'skip') &&
-        `${denormalizePoint(a.point, ctx.canvas).x},${denormalizePoint(a.point, ctx.canvas).y}` === fromKey
-    ).length;
+    let from = { ...startPoint };
+    const fromKey = `${from.x},${from.y}`;
+    const markerCount = countMarkers(actions, ctx.canvas, fromKey);
 
-    const baseRingRadius = radius * CONFIG.ARC_BASE_RADIUS_SCALE;
-    const ringSpacing = radius * CONFIG.ARC_RING_SPACING_SCALE;
-    const arcRadius = baseRingRadius + (markerCount - 1) * ringSpacing;
+    const arcRadius = baseArcRadius(radius, markerCount);
 
     if (markerCount > 0) {
-        const dx = currentMouse.x - fromX;
-        const dy = currentMouse.y - fromY;
-        const length = Math.sqrt(dx * dx + dy * dy);
-        const unitX = dx / length;
-        const unitY = dy / length;
-
-        fromX += unitX * arcRadius;
-        fromY += unitY * arcRadius;
+        from = moveAlongDirection(from, currentMouse, arcRadius);
     }
 
-    ctx.beginPath();
-    ctx.moveTo(fromX, fromY);
-    ctx.lineTo(currentMouse.x, currentMouse.y);
-    ctx.strokeStyle = 'black';
-    ctx.lineWidth = radius * CONFIG.TEMP_LINE_WIDTH_SCALE;
-    ctx.stroke();
+    setStroke(ctx, 'black', radius * CONFIG.TEMP_LINE_WIDTH_SCALE);
+    drawLine(ctx, from, currentMouse);
 }
 
 export function drawActions(ctx, actions, points, radius) {
     const currentCount = {};
-    const connectionMap = {};
+    const connectionMap = buildConnectionMap(actions, points, ctx.canvas);
+
+    drawCurvedConnections(ctx, connectionMap, points, radius);
+
+    for (const action of actions) {
+        if (action.type !== 'marker' && action.type !== 'skip') continue;
+
+        const point = denormalizePoint(action.point, ctx.canvas);
+        const key = `${action.point.x},${action.point.y}`;
+        const ringIndex = currentCount[key] || 0;
+
+        const arcRadius = baseArcRadius(radius, ringIndex);
+
+        if (action.type === 'skip') {
+            ctx.setLineDash([radius * CONFIG.SKIP_DASH_SCALE[0], radius * CONFIG.SKIP_DASH_SCALE[1]]);
+        }
+
+        setStroke(ctx, action.color, action.type === 'skip'
+            ? radius * CONFIG.SKIP_LINE_WIDTH_SCALE
+            : radius * CONFIG.MARKER_LINE_WIDTH_SCALE);
+        drawCircle(ctx, point, arcRadius);
+        ctx.setLineDash([]);
+
+        currentCount[key] = ringIndex + 1;
+    }
+}
+
+function drawLine(ctx, from, to) {
+    ctx.beginPath();
+    ctx.moveTo(from.x, from.y);
+    ctx.lineTo(to.x, to.y);
+    ctx.stroke();
+}
+
+function drawCircle(ctx, center, radius) {
+    ctx.beginPath();
+    ctx.arc(center.x, center.y, radius, 0, 2 * Math.PI);
+    ctx.stroke();
+}
+
+function setStroke(ctx, color, lineWidth) {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lineWidth;
+}
+
+function countMarkers(actions, canvas, key) {
+    return actions.filter(a =>
+        (a.type === 'marker' || a.type === 'skip') &&
+        `${denormalizePoint(a.point, canvas).x},${denormalizePoint(a.point, canvas).y}` === key
+    ).length;
+}
+
+function baseArcRadius(radius, index) {
+    return radius * CONFIG.ARC_BASE_RADIUS_SCALE + index * radius * CONFIG.ARC_RING_SPACING_SCALE;
+}
+
+function moveAlongDirection(from, to, distance) {
+    const dx = to.x - from.x;
+    const dy = to.y - from.y;
+    const length = Math.sqrt(dx * dx + dy * dy);
+    const unitX = dx / length;
+    const unitY = dy / length;
+    return {
+        x: from.x + unitX * distance,
+        y: from.y + unitY * distance
+    };
+}
+
+function buildConnectionMap(actions, points, canvas) {
+    const map = {};
 
     for (const action of actions) {
         if (action.type !== 'line') continue;
 
-        let from = denormalizePoint(action.from, ctx.canvas);
-        const to = denormalizePoint(action.to, ctx.canvas);
+        let from = denormalizePoint(action.from, canvas);
+        const to = denormalizePoint(action.to, canvas);
         const fromKey = `${from.x},${from.y}`;
 
         const actionIndex = actions.indexOf(action);
         const markerCount = actions.slice(0, actionIndex).filter(a =>
             (a.type === 'marker' || a.type === 'skip') &&
-            `${denormalizePoint(a.point, ctx.canvas).x},${denormalizePoint(a.point, ctx.canvas).y}` === fromKey
+            `${denormalizePoint(a.point, canvas).x},${denormalizePoint(a.point, canvas).y}` === fromKey
         ).length;
 
         if (markerCount > 0) {
-            const dx = to.x - from.x;
-            const dy = to.y - from.y;
-            const length = Math.sqrt(dx * dx + dy * dy);
-            if (length > 0) {
-                const unitX = dx / length;
-                const unitY = dy / length;
-
-                const baseRingRadius = radius * CONFIG.ARC_BASE_RADIUS_SCALE;
-                const ringSpacing = radius * CONFIG.ARC_RING_SPACING_SCALE;
-                const arcRadius = baseRingRadius + (markerCount - 1) * ringSpacing;
-
-                from.x += unitX * arcRadius;
-                from.y += unitY * arcRadius;
-            }
+            const arcRadius = baseArcRadius(1, markerCount - 1); // scale later
+            from = moveAlongDirection(from, to, arcRadius);
         }
 
-        const indexFrom = getPointIndex(denormalizePoint(action.from, ctx.canvas), points);
-        const indexTo = getPointIndex(denormalizePoint(action.to, ctx.canvas), points);
+        const indexFrom = getPointIndex(denormalizePoint(action.from, canvas), points);
+        const indexTo = getPointIndex(denormalizePoint(action.to, canvas), points);
         if (indexFrom === -1 || indexTo === -1) continue;
 
         const key = [indexFrom, indexTo].sort().join('-');
-        if (!connectionMap[key]) connectionMap[key] = [];
-        connectionMap[key].push({ action, from, to });
+        if (!map[key]) map[key] = [];
+        map[key].push({ action, from, to });
     }
 
-    for (const key in connectionMap) {
-        const group = connectionMap[key];
+    return map;
+}
+
+function drawCurvedConnections(ctx, map, points, radius) {
+    for (const key in map) {
+        const group = map[key];
         const [indexA, indexB] = key.split('-').map(Number);
         const ptA = points[indexA];
         const ptB = points[indexB];
@@ -131,39 +166,11 @@ export function drawActions(ctx, actions, points, radius) {
             const cx = mid.x + nx * curveOffset;
             const cy = mid.y + ny * curveOffset;
 
+            setStroke(ctx, item.action.color, radius * CONFIG.CONNECTION_LINE_WIDTH_SCALE);
             ctx.beginPath();
             ctx.moveTo(item.from.x, item.from.y);
             ctx.quadraticCurveTo(cx, cy, item.to.x, item.to.y);
-            ctx.strokeStyle = item.action.color;
-            ctx.lineWidth = radius * CONFIG.CONNECTION_LINE_WIDTH_SCALE;
             ctx.stroke();
         });
-    }
-
-    for (const action of actions) {
-        if (action.type !== 'marker' && action.type !== 'skip') continue;
-
-        const point = denormalizePoint(action.point, ctx.canvas);
-        const key = `${action.point.x},${action.point.y}`;
-        const ringIndex = currentCount[key] || 0;
-
-        const baseRingRadius = radius * CONFIG.ARC_BASE_RADIUS_SCALE;
-        const ringSpacing = radius * CONFIG.ARC_RING_SPACING_SCALE;
-        const arcRadius = baseRingRadius + ringIndex * ringSpacing;
-
-        ctx.beginPath();
-        if (action.type === 'skip') {
-            ctx.setLineDash([radius * CONFIG.SKIP_DASH_SCALE[0], radius * CONFIG.SKIP_DASH_SCALE[1]]);
-        }
-
-        ctx.arc(point.x, point.y, arcRadius, 0, 2 * Math.PI);
-        ctx.strokeStyle = action.color;
-        ctx.lineWidth = action.type === 'skip'
-            ? radius * CONFIG.SKIP_LINE_WIDTH_SCALE
-            : radius * CONFIG.MARKER_LINE_WIDTH_SCALE;
-        ctx.stroke();
-        ctx.setLineDash([]);
-
-        currentCount[key] = ringIndex + 1;
     }
 }
