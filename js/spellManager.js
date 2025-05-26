@@ -22,70 +22,94 @@ export function showHistory(historyDiv, pointDataLog, totalManaCost, spellCode) 
 }
 
 export function loadSpellFromCode(code, state, points, getActionColor, updateStepCallback) {
-    const digits = code.split('').map(d => parseInt(d, 10));
-
-    if (digits.length !== SPELL_CONFIG.CODE_LENGTH || digits.some(d => isNaN(d) || d < 0 || d > 9)) {
-        alert("Kod zaklęcia musi zawierać dokładnie 8 cyfr od 0 do 9.");
-        return;
-    }
+    const digits = parseSpellCode(code);
+    if (!digits) return;
 
     let currentPoint = points[0];
     state.lastEndPoint = currentPoint;
 
-    for (let i = 0; i < digits.length; i++) {
-        const val = digits[i];
+    digits.forEach((val, i) => {
         const prevVal = i > 0 ? digits[i - 1] : null;
         const color = getActionColor(state.actionCount);
         const infoSet = generatePointInfo(i);
 
-        if (i === 0 && val === 8) {
-            state.pointDataLog.push({ point: currentPoint, info: infoSet[7] });
-            state.spellCode.push(8);
-            state.totalManaCost += 8;
-            state.actions.push({
-                type: 'marker',
-                color,
-                point: normalizePoint(currentPoint, state.canvas)
-            });
-        } else if (val === 0) {
-            state.pointDataLog.push({ point: currentPoint, info: infoSet[8] });
-            state.spellCode.push(0);
-            state.actions.push({
-                type: 'skip',
-                color,
-                point: normalizePoint(currentPoint, state.canvas)
-            });
-        } else {
-            const mappedIndex = val === 8 ? 0 : val;
-            if (mappedIndex < 0 || mappedIndex >= SPELL_CONFIG.MAX_INDEX) continue;
+        handleSpellStep({ i, val, prevVal, state, color, infoSet, currentPoint, points });
+        currentPoint = state.lastEndPoint;
 
-            const targetPoint = points[mappedIndex];
-            const manaCost = val === 8 ? 8 : val;
-
-            if (val === prevVal) {
-                state.pointDataLog.push({ point: currentPoint, info: infoSet[mappedIndex] });
-                state.spellCode.push(val);
-                state.totalManaCost += manaCost;
-                state.actions.push({
-                    type: 'marker',
-                    color,
-                    point: normalizePoint(currentPoint, state.canvas)
-                });
-            } else {
-                state.pointDataLog.push({ point: targetPoint, info: infoSet[mappedIndex] });
-                state.spellCode.push(val);
-                state.totalManaCost += manaCost;
-                state.actions.push({
-                    type: 'line',
-                    color,
-                    from: normalizePoint(currentPoint, state.canvas),
-                    to: normalizePoint(targetPoint, state.canvas)
-                });
-                currentPoint = targetPoint;
-                state.lastEndPoint = targetPoint;
-            }
-        }
         state.actionCount++;
         if (updateStepCallback) updateStepCallback(state.actionCount);
+    });
+}
+
+// --- Helpers ---
+
+function parseSpellCode(code) {
+    const digits = code.split('').map(d => parseInt(d, 10));
+    const valid = digits.length === SPELL_CONFIG.CODE_LENGTH && digits.every(d => !isNaN(d) && d >= 0 && d <= 8);
+    if (!valid) {
+        alert("Kod zaklęcia musi zawierać dokładnie 8 cyfr od 0 do 9.");
+        return null;
     }
+    return digits;
+}
+
+function handleSpellStep({ i, val, prevVal, state, color, infoSet, currentPoint, points }) {
+    const canvas = state.canvas;
+
+    if (i === 0 && val === 8) {
+        pushMarker(state, currentPoint, infoSet[7], color, canvas);
+        state.spellCode.push(8);
+        state.totalManaCost += 8;
+        return;
+    }
+
+    if (val === 0) {
+        pushSkip(state, currentPoint, infoSet[8], color, canvas);
+        state.spellCode.push(0);
+        return;
+    }
+
+    const mappedIndex = val === 8 ? 0 : val;
+    if (mappedIndex < 0 || mappedIndex >= SPELL_CONFIG.MAX_INDEX) return;
+
+    const targetPoint = points[mappedIndex];
+    const manaCost = val === 8 ? 8 : val;
+
+    const pointUsed = (val === prevVal) ? currentPoint : targetPoint;
+    const actionType = (val === prevVal) ? 'marker' : 'line';
+    const info = infoSet[mappedIndex];
+
+    state.pointDataLog.push({ point: pointUsed, info });
+    state.spellCode.push(val);
+    state.totalManaCost += manaCost;
+
+    if (actionType === 'marker') {
+        state.actions.push({ type: 'marker', color, point: normalizePoint(currentPoint, canvas) });
+    } else {
+        state.actions.push({
+            type: 'line',
+            color,
+            from: normalizePoint(currentPoint, canvas),
+            to: normalizePoint(targetPoint, canvas)
+        });
+        state.lastEndPoint = targetPoint;
+    }
+}
+
+function pushMarker(state, point, info, color, canvas) {
+    state.pointDataLog.push({ point, info });
+    state.actions.push({
+        type: 'marker',
+        color,
+        point: normalizePoint(point, canvas)
+    });
+}
+
+function pushSkip(state, point, info, color, canvas) {
+    state.pointDataLog.push({ point, info });
+    state.actions.push({
+        type: 'skip',
+        color,
+        point: normalizePoint(point, canvas)
+    });
 }
