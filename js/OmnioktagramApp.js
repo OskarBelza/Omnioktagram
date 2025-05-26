@@ -189,13 +189,17 @@ export class OmnioktagramApp {
         this.actionCount++;
     }
 
-    checkActionLimit() {
+    postActionUpdate() {
+        this.draw();
+        updateVertexIcons(this.actionCount, this.points, this.canvas, this.radius);
+
         if (this.actionCount >= this.ACTION_LIMIT && !this.historyShown) {
             this.showHistory();
             this.finalizeDrawing();
             this.historyShown = true;
         }
     }
+
 
     onDown(e) {
         e.preventDefault();
@@ -277,14 +281,7 @@ export class OmnioktagramApp {
         }
 
         this.startPoint = null;
-        this.draw();
-        updateVertexIcons(this.actionCount, this.points, this.canvas, this.radius);
-
-        if (this.actionCount >= this.ACTION_LIMIT && !this.historyShown) {
-            this.showHistory();
-            this.finalizeDrawing();
-            this.historyShown = true;
-        }
+        this.postActionUpdate()
     }
 
     handleTap(offsetX, offsetY) {
@@ -302,14 +299,7 @@ export class OmnioktagramApp {
 
             if (distance < threshold && pt.x === allowedTapPoint.x && pt.y === allowedTapPoint.y) {
                 this.addAction('marker', pt);
-                this.draw();
-                updateVertexIcons(this.actionCount, this.points, this.canvas, this.radius);
-
-                if (this.actionCount >= this.ACTION_LIMIT && !this.historyShown) {
-                    this.showHistory();
-                    this.finalizeDrawing();
-                    this.historyShown = true;
-                }
+                this.postActionUpdate()
                 break;
             }
         }
@@ -330,15 +320,6 @@ export class OmnioktagramApp {
                 this.addAction('skip', this.lastEndPoint, null, 0, infoSet[8]);
             }
         }
-        this.draw();
-        updateVertexIcons(this.actionCount, this.points, this.canvas, this.radius);
-
-        if (this.actionCount >= this.ACTION_LIMIT && !this.historyShown) {
-            this.showHistory();
-            this.finalizeDrawing();
-            this.historyShown = true;
-        }
-
-        this.draw();
+        this.postActionUpdate();
     }
 }
