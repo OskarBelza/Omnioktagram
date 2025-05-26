@@ -234,11 +234,16 @@ export class OmnioktagramApp {
     onUp(e) {
         e.preventDefault();
         enableScroll(this.canvas);
-        if (!this.dragging || !this.startPoint) return;
-
-        this.dragging = false;
 
         const { offsetX, offsetY } = getEffectiveOffset(e, this.lastTouchOffset, this.canvas);
+
+        if (!this.dragging || !this.startPoint) {
+            this.dragging = false;
+            this.startPoint = null;
+            return;
+        }
+
+        this.dragging = false;
 
         if (!this.hasDragged) {
             this.handleTap(offsetX, offsetY);
