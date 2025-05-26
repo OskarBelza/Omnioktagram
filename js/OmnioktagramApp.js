@@ -294,7 +294,7 @@ export class OmnioktagramApp {
         const allowedTapPoint = isFirstAction ? this.points[0] : this.lastEndPoint;
         if (!allowedTapPoint) return;
 
-        const threshold = this.radius * 0.70;
+        const threshold = this.radius * 0.40;
         for (const pt of this.points) {
             const dx = pt.x - offsetX;
             const dy = pt.y - offsetY;
