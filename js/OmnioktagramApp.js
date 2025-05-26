@@ -330,6 +330,8 @@ export class OmnioktagramApp {
                 this.addAction('skip', this.lastEndPoint, null, 0, infoSet[8]);
             }
         }
+        this.draw();
+        updateVertexIcons(this.actionCount, this.points, this.canvas, this.radius);
 
         if (this.actionCount >= this.ACTION_LIMIT && !this.historyShown) {
             this.showHistory();
