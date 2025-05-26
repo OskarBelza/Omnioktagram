@@ -41,8 +41,6 @@ export function loadSpellFromCode(code, state, points, getActionColor, updateSte
     });
 }
 
-// --- Helpers ---
-
 function parseSpellCode(code) {
     const digits = code.split('').map(d => parseInt(d, 10));
     const valid = digits.length === SPELL_CONFIG.CODE_LENGTH && digits.every(d => !isNaN(d) && d >= 0 && d <= 8);

@@ -34,7 +34,7 @@ export function drawTempLine(ctx, dragging, startPoint, currentMouse, actions, r
     const fromKey = `${from.x},${from.y}`;
     const markerCount = countMarkers(actions, ctx.canvas, fromKey);
 
-    const arcRadius = baseArcRadius(radius, markerCount);
+    const arcRadius = baseArcRadius(radius, markerCount - 1);
 
     if (markerCount > 0) {
         from = moveAlongDirection(from, currentMouse, arcRadius);
@@ -46,7 +46,34 @@ export function drawTempLine(ctx, dragging, startPoint, currentMouse, actions, r
 
 export function drawActions(ctx, actions, points, radius) {
     const currentCount = {};
-    const connectionMap = buildConnectionMap(actions, points, ctx.canvas);
+    const connectionMap = {};
+
+    for (const action of actions) {
+        if (action.type !== 'line') continue;
+
+        let from = denormalizePoint(action.from, ctx.canvas);
+        const to = denormalizePoint(action.to, ctx.canvas);
+        const fromKey = `${from.x},${from.y}`;
+
+        const actionIndex = actions.indexOf(action);
+        const markerCount = actions.slice(0, actionIndex).filter(a =>
+            (a.type === 'marker' || a.type === 'skip') &&
+            `${denormalizePoint(a.point, ctx.canvas).x},${denormalizePoint(a.point, ctx.canvas).y}` === fromKey
+        ).length;
+
+        if (markerCount > 0) {
+            const arcRadius = baseArcRadius(radius, markerCount - 1);
+            from = moveAlongDirection(from, to, arcRadius);
+        }
+
+        const indexFrom = getPointIndex(denormalizePoint(action.from, ctx.canvas), points);
+        const indexTo = getPointIndex(denormalizePoint(action.to, ctx.canvas), points);
+        if (indexFrom === -1 || indexTo === -1) continue;
+
+        const key = [indexFrom, indexTo].sort().join('-');
+        if (!connectionMap[key]) connectionMap[key] = [];
+        connectionMap[key].push({ action, from, to });
+    }
 
     drawCurvedConnections(ctx, connectionMap, points, radius);
 
@@ -112,39 +139,6 @@ function moveAlongDirection(from, to, distance) {
         x: from.x + unitX * distance,
         y: from.y + unitY * distance
     };
-}
-
-function buildConnectionMap(actions, points, canvas) {
-    const map = {};
-
-    for (const action of actions) {
-        if (action.type !== 'line') continue;
-
-        let from = denormalizePoint(action.from, canvas);
-        const to = denormalizePoint(action.to, canvas);
-        const fromKey = `${from.x},${from.y}`;
-
-        const actionIndex = actions.indexOf(action);
-        const markerCount = actions.slice(0, actionIndex).filter(a =>
-            (a.type === 'marker' || a.type === 'skip') &&
-            `${denormalizePoint(a.point, canvas).x},${denormalizePoint(a.point, canvas).y}` === fromKey
-        ).length;
-
-        if (markerCount > 0) {
-            const arcRadius = baseArcRadius(1, markerCount - 1); // scale later
-            from = moveAlongDirection(from, to, arcRadius);
-        }
-
-        const indexFrom = getPointIndex(denormalizePoint(action.from, canvas), points);
-        const indexTo = getPointIndex(denormalizePoint(action.to, canvas), points);
-        if (indexFrom === -1 || indexTo === -1) continue;
-
-        const key = [indexFrom, indexTo].sort().join('-');
-        if (!map[key]) map[key] = [];
-        map[key].push({ action, from, to });
-    }
-
-    return map;
 }
 
 function drawCurvedConnections(ctx, map, points, radius) {
