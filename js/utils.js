@@ -24,12 +24,6 @@ export function pointsEqual(p1, p2, tolerance = 1e-6) {
     return p1 && p2 && Math.abs(p1.x - p2.x) < tolerance && Math.abs(p1.y - p2.y) < tolerance;
 }
 
-export function distance(p1, p2) {
-    const dx = p1.x - p2.x;
-    const dy = p1.y - p2.y;
-    return Math.sqrt(dx * dx + dy * dy);
-}
-
 export function getClosestPoint(offsetX, offsetY, points, threshold, conditionFn = () => true) {
     for (const pt of points) {
         const dx = pt.x - offsetX;
