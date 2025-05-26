@@ -65,9 +65,9 @@ export function updateVertexIcons(stepIndex, points, canvas, radius) {
 
         if (isTextStep) {
             if (stepIndex === 2) {
-                el.textContent = ["Losuj", "Przemiesc", "Zaatakuj", "Ulecz", "Obron", "Okryj", "Pokaz", "Zniszcz"][index];
+                el.textContent = ["Losuj", "Przemieść", "Zaatakuj", "Ulecz", "Obroń", "Okryj", "Pokaż", "Zniszcz"][index];
             } else if (stepIndex === 3) {
-                el.textContent = ["Kreacja", "Dotyk", "Wybuch", "Plama", "Sciana", "Pocisk", "Iluzja", "Przywolanie"][index];
+                el.textContent = ["Kreacja", "Dotyk", "Wybuch", "Plama", "Ściana", "Pocisk", "Iluzja", "Przywołanie"][index];
             } else {
                 el.textContent = index === 0 ? '9' : `${index + 1}`;
             }
