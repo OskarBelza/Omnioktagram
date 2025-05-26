@@ -1,6 +1,9 @@
-export function getEventOffset(e, canvas) {
+export function getEffectiveOffset(e, lastTouchOffset, canvas) {
+    if (e.type === 'touchend' && lastTouchOffset) {
+        return lastTouchOffset;
+    }
+    const rect = canvas.getBoundingClientRect();
     if (e.touches && e.touches.length > 0) {
-        const rect = canvas.getBoundingClientRect();
         return {
             offsetX: e.touches[0].clientX - rect.left,
             offsetY: e.touches[0].clientY - rect.top

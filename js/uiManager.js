@@ -1,3 +1,5 @@
+import { ICON_CONFIG } from './config.js';
+
 export function updateThemeIcon(toggleThemeBtn) {
     const isLight = document.body.classList.contains('light-mode');
     toggleThemeBtn.textContent = isLight ? '🌙' : '🌞';
@@ -5,38 +7,18 @@ export function updateThemeIcon(toggleThemeBtn) {
 
 export function updateVertexIcons(stepIndex, points, canvas, radius) {
     const icons = document.querySelectorAll('.vertex-icon');
-    const offset = radius * 0.24;
-    const baseIconSize = radius * 0.18;
 
-    const stepScaling = {
-        0: 1.3,
-        1: 1.3,
-        2: 1.1,
-        3: 1.1,
-        4: 1.7,
-        5: 1.7,
-        6: 1.7,
-        7: 1.7
-    };
+    const offset = radius * ICON_CONFIG.ICON_OFFSET_SCALE;
+    const baseIconSize = radius * ICON_CONFIG.ICON_BASE_SIZE_SCALE;
+    const scale = ICON_CONFIG.STEP_ICON_SCALE[stepIndex] ?? 1.0;
 
-    const scale = stepScaling[stepIndex] ?? 1.0;
     const iconSize = baseIconSize * scale;
-    const fontSize = iconSize * 0.45;
+    const fontSize = iconSize * ICON_CONFIG.ICON_FONT_SIZE_RATIO;
 
     const cssWidth = canvas.clientWidth;
     const cssHeight = canvas.clientHeight;
 
-    const stepTitles = [
-        "NATURA",
-        "MOC",
-        "EFEKT",
-        "FORMA",
-        "ODLEGLOŚĆ",
-        "OBSZAR",
-        "CZAS TRWANIA",
-        "OPÓŹNIENIE"
-    ];
-
+    const stepTitles = ICON_CONFIG.STEP_TITLES;
     const titleEl = document.getElementById("top-text-container");
     if (titleEl && stepIndex >= 0 && stepIndex < stepTitles.length) {
         titleEl.textContent = stepTitles[stepIndex];

@@ -1,13 +1,13 @@
 import { denormalizePoint, getPointIndex } from './utils.js';
+import { CONFIG } from './config.js';
 
 export function clearCanvas(ctx, canvas) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
 export function drawBaseLines(ctx, points, center, radius) {
-    const baseLineWidth = radius * 0.003;
     ctx.strokeStyle = 'white';
-    ctx.lineWidth = baseLineWidth;
+    ctx.lineWidth = radius * CONFIG.BASE_LINE_WIDTH_SCALE;
 
     for (let i = 0; i < points.length; i++) {
         for (let j = i + 1; j < points.length; j++) {
@@ -24,8 +24,8 @@ export function drawBaseLines(ctx, points, center, radius) {
 }
 
 export function drawVertices(ctx, points, radius) {
-    const vertexRadius = radius * 0.03;
-    const lineWidth = radius * 0.0075;
+    const vertexRadius = radius * CONFIG.VERTEX_RADIUS_SCALE;
+    const lineWidth = radius * CONFIG.VERTEX_LINE_WIDTH_SCALE;
 
     for (const pt of points) {
         ctx.beginPath();
@@ -47,8 +47,8 @@ export function drawTempLine(ctx, dragging, startPoint, currentMouse, actions, r
         `${denormalizePoint(a.point, ctx.canvas).x},${denormalizePoint(a.point, ctx.canvas).y}` === fromKey
     ).length;
 
-    const baseRingRadius = radius * 0.07;
-    const ringSpacing = radius * 0.035;
+    const baseRingRadius = radius * CONFIG.ARC_BASE_RADIUS_SCALE;
+    const ringSpacing = radius * CONFIG.ARC_RING_SPACING_SCALE;
     const arcRadius = baseRingRadius + (markerCount - 1) * ringSpacing;
 
     if (markerCount > 0) {
@@ -66,7 +66,7 @@ export function drawTempLine(ctx, dragging, startPoint, currentMouse, actions, r
     ctx.moveTo(fromX, fromY);
     ctx.lineTo(currentMouse.x, currentMouse.y);
     ctx.strokeStyle = 'black';
-    ctx.lineWidth = radius * 0.015;
+    ctx.lineWidth = radius * CONFIG.TEMP_LINE_WIDTH_SCALE;
     ctx.stroke();
 }
 
@@ -95,8 +95,8 @@ export function drawActions(ctx, actions, points, radius) {
                 const unitX = dx / length;
                 const unitY = dy / length;
 
-                const baseRingRadius = radius * 0.07;
-                const ringSpacing = radius * 0.035;
+                const baseRingRadius = radius * CONFIG.ARC_BASE_RADIUS_SCALE;
+                const ringSpacing = radius * CONFIG.ARC_RING_SPACING_SCALE;
                 const arcRadius = baseRingRadius + (markerCount - 1) * ringSpacing;
 
                 from.x += unitX * arcRadius;
@@ -124,7 +124,7 @@ export function drawActions(ctx, actions, points, radius) {
         const length = Math.sqrt(dx * dx + dy * dy);
         const nx = -dy / length;
         const ny = dx / length;
-        const baseOffset = radius * 0.15;
+        const baseOffset = radius * CONFIG.ACTION_CURVE_OFFSET_SCALE;
 
         group.forEach((item, i) => {
             const curveOffset = (i - (group.length - 1) / 2) * baseOffset;
@@ -135,7 +135,7 @@ export function drawActions(ctx, actions, points, radius) {
             ctx.moveTo(item.from.x, item.from.y);
             ctx.quadraticCurveTo(cx, cy, item.to.x, item.to.y);
             ctx.strokeStyle = item.action.color;
-            ctx.lineWidth = radius * 0.017;
+            ctx.lineWidth = radius * CONFIG.CONNECTION_LINE_WIDTH_SCALE;
             ctx.stroke();
         });
     }
@@ -147,18 +147,20 @@ export function drawActions(ctx, actions, points, radius) {
         const key = `${action.point.x},${action.point.y}`;
         const ringIndex = currentCount[key] || 0;
 
-        const baseRingRadius = radius * 0.07;
-        const ringSpacing = radius * 0.035;
+        const baseRingRadius = radius * CONFIG.ARC_BASE_RADIUS_SCALE;
+        const ringSpacing = radius * CONFIG.ARC_RING_SPACING_SCALE;
         const arcRadius = baseRingRadius + ringIndex * ringSpacing;
 
         ctx.beginPath();
         if (action.type === 'skip') {
-            ctx.setLineDash([radius * 0.015, radius * 0.07]);
+            ctx.setLineDash([radius * CONFIG.SKIP_DASH_SCALE[0], radius * CONFIG.SKIP_DASH_SCALE[1]]);
         }
 
         ctx.arc(point.x, point.y, arcRadius, 0, 2 * Math.PI);
         ctx.strokeStyle = action.color;
-        ctx.lineWidth = action.type === 'skip' ? radius * 0.012 : radius * 0.015;
+        ctx.lineWidth = action.type === 'skip'
+            ? radius * CONFIG.SKIP_LINE_WIDTH_SCALE
+            : radius * CONFIG.MARKER_LINE_WIDTH_SCALE;
         ctx.stroke();
         ctx.setLineDash([]);
 

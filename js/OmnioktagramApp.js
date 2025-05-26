@@ -4,7 +4,6 @@ import {
     getActionColor,
     pointsEqual,
     getClosestPoint,
-    getEffectiveOffset
 } from './utils.js';
 
 import {
@@ -30,8 +29,11 @@ import {
 
 import {
     disableScroll,
-    enableScroll
+    enableScroll,
+    getEffectiveOffset
 } from './inputHandler.js';
+
+import { LOGIC_CONFIG } from './config.js';
 
 export class OmnioktagramApp {
     constructor(canvasId, toggleThemeBtn) {
@@ -58,7 +60,7 @@ export class OmnioktagramApp {
         this.actionCount = 0;
         this.historyShown = false;
 
-        this.ACTION_LIMIT = 8;
+        this.ACTION_LIMIT = LOGIC_CONFIG.ACTION_LIMIT;
 
         this.init();
     }
@@ -82,9 +84,9 @@ export class OmnioktagramApp {
         this.ctx.scale(dpr, dpr);
 
         this.center = { x: cssSize / 2, y: cssSize / 2 };
-        this.radius = cssSize * 0.34;
+        this.radius = cssSize * LOGIC_CONFIG.RADIUS_SCALE;
 
-        this.points = Array.from({ length: 8 }, (_, i) => {
+        this.points = Array.from({ length: LOGIC_CONFIG.POINT_COUNT }, (_, i) => {
             const angle = (Math.PI / 4) * i - Math.PI / 2;
             return {
                 x: this.center.x + this.radius * Math.cos(angle),
@@ -202,7 +204,7 @@ export class OmnioktagramApp {
         this.hasDragged = false;
 
         const isFirstAction = this.actionCount === 0;
-        const threshold = this.radius * 0.70;
+        const threshold = this.radius * LOGIC_CONFIG.START_THRESHOLD_SCALE;
 
         const pt = getClosestPoint(offsetX, offsetY, this.points, threshold, candidate => {
             return isFirstAction ? candidate === this.points[0] : pointsEqual(candidate, this.lastEndPoint);
@@ -250,7 +252,7 @@ export class OmnioktagramApp {
             return;
         }
 
-        const pt = getClosestPoint(offsetX, offsetY, this.points, this.radius * 0.20,
+        const pt = getClosestPoint(offsetX, offsetY, this.points, this.radius * LOGIC_CONFIG.END_THRESHOLD_SCALE,
                 candidate => !pointsEqual(candidate, this.startPoint));
         if (pt) {
             this.addAction('line', pt, this.startPoint);
@@ -267,7 +269,7 @@ export class OmnioktagramApp {
         const allowedTapPoint = isFirstAction ? this.points[0] : this.lastEndPoint;
         if (!allowedTapPoint) return;
 
-        const pt = getClosestPoint(offsetX, offsetY, this.points, this.radius * 0.40,
+        const pt = getClosestPoint(offsetX, offsetY, this.points, this.radius * LOGIC_CONFIG.TAP_THRESHOLD_SCALE,
                 candidate => pointsEqual(candidate, allowedTapPoint));
         if (pt) {
             this.addAction('marker', pt);
@@ -277,7 +279,7 @@ export class OmnioktagramApp {
 
     skipAction() {
         if (this.actionCount >= this.ACTION_LIMIT || this.historyShown) return;
-        if (this.actionCount < 4) {
+        if (this.actionCount < LOGIC_CONFIG.MIN_ACTIONS_FOR_SKIP) {
             alert("Aby pominąć, musisz najpierw wykonać co najmniej 4 akcje.");
             return;
         }
