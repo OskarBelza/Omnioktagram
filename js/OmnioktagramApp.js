@@ -59,6 +59,7 @@ export class OmnioktagramApp {
         this.spellCode = [];
         this.actionCount = 0;
         this.historyShown = false;
+        this.downOffset = null;
 
         this.ACTION_LIMIT = LOGIC_CONFIG.ACTION_LIMIT;
 
@@ -200,7 +201,9 @@ export class OmnioktagramApp {
     onDown(e) {
         e.preventDefault();
         disableScroll(this.canvas);
+
         const { offsetX, offsetY } = getEffectiveOffset(e, this.lastTouchOffset, this.canvas);
+        this.downOffset = { offsetX, offsetY };
         this.hasDragged = false;
 
         const isFirstAction = this.actionCount === 0;
@@ -212,16 +215,29 @@ export class OmnioktagramApp {
 
         if (pt) {
             this.startPoint = pt;
-            this.dragging = true;
         }
     }
 
+
     onMove(e) {
-        if (!this.dragging) return;
+        if (!this.startPoint) return;
         e.preventDefault();
-        this.hasDragged = true;
 
         const { offsetX, offsetY } = getEffectiveOffset(e, this.lastTouchOffset, this.canvas);
+
+        if (this.downOffset) {
+            const dx = offsetX - this.downOffset.offsetX;
+            const dy = offsetY - this.downOffset.offsetY;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist >= 10 && !this.dragging) {
+                this.dragging = true;
+            }
+        }
+
+        if (!this.dragging) return;
+
+        this.hasDragged = true;
         this.currentMouse = { x: offsetX, y: offsetY };
 
         if (e.touches && e.touches.length > 0) {
@@ -231,40 +247,49 @@ export class OmnioktagramApp {
         this.draw();
     }
 
+
+
     onUp(e) {
         e.preventDefault();
         enableScroll(this.canvas);
-        if (!this.dragging || !this.startPoint) {
-            this.lastTouchOffset = null;
-            return;
-        }
-
-        this.dragging = false;
 
         const { offsetX, offsetY } = getEffectiveOffset(e, this.lastTouchOffset, this.canvas);
 
-        if (!this.hasDragged) {
+        let isTap = false;
+        if (this.downOffset) {
+            const dx = offsetX - this.downOffset.offsetX;
+            const dy = offsetY - this.downOffset.offsetY;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            isTap = dist < 10;
+        }
+
+        this.downOffset = null;
+        this.lastTouchOffset = null;
+
+        // Jeśli był tap
+        if (isTap) {
             this.handleTap(offsetX, offsetY);
             this.startPoint = null;
-            this.lastTouchOffset = null;
             return;
         }
+
+        if (!this.dragging || !this.startPoint) return;
+
+        this.dragging = false;
 
         if (this.actionCount >= this.ACTION_LIMIT) {
             this.startPoint = null;
             this.draw();
-            this.lastTouchOffset = null;
             return;
         }
 
         const pt = getClosestPoint(offsetX, offsetY, this.points, this.radius * LOGIC_CONFIG.END_THRESHOLD_SCALE,
-                candidate => !pointsEqual(candidate, this.startPoint));
+            candidate => !pointsEqual(candidate, this.startPoint));
         if (pt) {
             this.addAction('line', pt, this.startPoint);
         }
 
         this.startPoint = null;
-        this.lastTouchOffset = null;
         this.postActionUpdate();
     }
 
