@@ -32,7 +32,6 @@ import {
     enableScroll
 } from './inputHandler.js';
 
-
 export class OmnioktagramApp {
     constructor(canvasId, toggleThemeBtn) {
         this.canvas = document.getElementById(canvasId);
@@ -101,14 +100,9 @@ export class OmnioktagramApp {
             updateVertexIcons(this.actionCount, this.points, this.canvas, this.radius);
         });
 
-        this.canvas.addEventListener('mousedown', e => this.onDown(e));
-        this.canvas.addEventListener('touchstart', e => this.onDown(e));
-
-        this.canvas.addEventListener('mousemove', e => this.onMove(e));
-        this.canvas.addEventListener('touchmove', e => this.onMove(e));
-
-        this.canvas.addEventListener('mouseup', e => this.onUp(e));
-        this.canvas.addEventListener('touchend', e => this.onUp(e));
+        ['mousedown', 'touchstart'].forEach(evt => this.canvas.addEventListener(evt, e => this.onDown(e)));
+        ['mousemove', 'touchmove'].forEach(evt => this.canvas.addEventListener(evt, e => this.onMove(e)));
+        ['mouseup', 'touchend'].forEach(evt => this.canvas.addEventListener(evt, e => this.onUp(e)));
 
         this.toggleThemeBtn.addEventListener('click', () => {
             document.body.classList.toggle('light-mode');
@@ -169,6 +163,38 @@ export class OmnioktagramApp {
         this.showHistory();
         this.finalizeDrawing();
         this.historyShown = true;
+    }
+
+    addAction(type, pt, fromPt = null, spellValue = null, infoOverride = null) {
+        const color = getActionColor(this.actionCount);
+        const index = getPointIndex(pt, this.points);
+        const infoSet = generatePointInfo(this.actionCount);
+
+        if (index !== -1) {
+            const manaCost = spellValue ?? (index === 0 ? 8 : index);
+            this.totalManaCost += manaCost;
+            this.spellCode.push(manaCost);
+            this.pointDataLog.push({ point: pt, info: infoOverride ?? infoSet[index] });
+        }
+
+        if (type === 'line') {
+            this.actions.push({ type: 'line', from: normalizePoint(fromPt, this.canvas), to: normalizePoint(pt, this.canvas), color });
+            this.lastEndPoint = pt;
+        } else {
+            this.actions.push({ type, point: normalizePoint(pt, this.canvas), color });
+            this.lastEndPoint = pt;
+        }
+
+        this.visitedPoints.push(pt);
+        this.actionCount++;
+    }
+
+    checkActionLimit() {
+        if (this.actionCount >= this.ACTION_LIMIT && !this.historyShown) {
+            this.showHistory();
+            this.finalizeDrawing();
+            this.historyShown = true;
+        }
     }
 
     onDown(e) {
@@ -245,23 +271,7 @@ export class OmnioktagramApp {
             const distance = Math.sqrt(dx * dx + dy * dy);
 
             if (distance < threshold && (pt.x !== this.startPoint.x || pt.y !== this.startPoint.y)) {
-                const color = getActionColor(this.actionCount);
-                const from = normalizePoint(this.startPoint, this.canvas);
-                const to = normalizePoint(pt, this.canvas);
-                const index = getPointIndex(pt, this.points);
-                const infoSet = generatePointInfo(this.actionCount);
-
-                if (index !== -1) {
-                    this.pointDataLog.push({ point: pt, info: infoSet[index] });
-                    const manaCost = index === 0 ? 8 : index;
-                    this.totalManaCost += manaCost;
-                    this.spellCode.push(manaCost);
-                }
-
-                this.actions.push({ type: 'line', from, to, color });
-                this.lastEndPoint = pt;
-                this.visitedPoints.push(pt);
-                this.actionCount++;
+                this.addAction('line', pt, this.startPoint);
                 break;
             }
         }
@@ -284,29 +294,14 @@ export class OmnioktagramApp {
         const allowedTapPoint = isFirstAction ? this.points[0] : this.lastEndPoint;
         if (!allowedTapPoint) return;
 
-        const threshold = this.radius * 0.20;
+        const threshold = this.radius * 0.70;
         for (const pt of this.points) {
             const dx = pt.x - offsetX;
             const dy = pt.y - offsetY;
             const distance = Math.sqrt(dx * dx + dy * dy);
 
             if (distance < threshold && pt.x === allowedTapPoint.x && pt.y === allowedTapPoint.y) {
-                const color = getActionColor(this.actionCount);
-                const index = getPointIndex(pt, this.points);
-                const infoSet = generatePointInfo(this.actionCount);
-
-                if (index !== -1) {
-                    this.pointDataLog.push({ point: pt, info: infoSet[index] });
-                    const manaCost = index === 0 ? 8 : index;
-                    this.totalManaCost += manaCost;
-                    this.spellCode.push(manaCost);
-                }
-
-                this.actions.push({ type: 'marker', point: normalizePoint(pt, this.canvas), color });
-                this.visitedPoints.push(pt);
-                this.lastEndPoint = pt;
-                this.actionCount++;
-
+                this.addAction('marker', pt);
                 this.draw();
                 updateVertexIcons(this.actionCount, this.points, this.canvas, this.radius);
 
@@ -327,24 +322,14 @@ export class OmnioktagramApp {
             return;
         }
 
-        const color = getActionColor(this.actionCount);
         if (this.lastEndPoint) {
             const index = getPointIndex(this.lastEndPoint, this.points);
             const infoSet = generatePointInfo(this.actionCount);
 
             if (index !== -1) {
-                this.pointDataLog.push({ point: this.lastEndPoint, info: infoSet[8] });
-                this.spellCode.push(0);
+                this.addAction('skip', this.lastEndPoint, null, 0, infoSet[8]);
             }
-
-            this.actions.push({
-                type: 'skip',
-                color,
-                point: normalizePoint(this.lastEndPoint, this.canvas)
-            });
         }
-
-        this.actionCount++;
 
         if (this.actionCount >= this.ACTION_LIMIT && !this.historyShown) {
             this.showHistory();
