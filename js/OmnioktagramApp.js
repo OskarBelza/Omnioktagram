@@ -234,7 +234,10 @@ export class OmnioktagramApp {
     onUp(e) {
         e.preventDefault();
         enableScroll(this.canvas);
-        if (!this.dragging || !this.startPoint) return;
+        if (!this.dragging || !this.startPoint) {
+            this.lastTouchOffset = null;
+            return;
+        }
 
         this.dragging = false;
 
@@ -243,12 +246,14 @@ export class OmnioktagramApp {
         if (!this.hasDragged) {
             this.handleTap(offsetX, offsetY);
             this.startPoint = null;
+            this.lastTouchOffset = null;
             return;
         }
 
         if (this.actionCount >= this.ACTION_LIMIT) {
             this.startPoint = null;
             this.draw();
+            this.lastTouchOffset = null;
             return;
         }
 
@@ -259,8 +264,10 @@ export class OmnioktagramApp {
         }
 
         this.startPoint = null;
+        this.lastTouchOffset = null;
         this.postActionUpdate();
     }
+
 
     handleTap(offsetX, offsetY) {
         if (this.actionCount >= this.ACTION_LIMIT) return;
