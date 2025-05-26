@@ -1,8 +1,10 @@
 import {
     normalizePoint,
-    denormalizePoint,
     getPointIndex,
-    getActionColor
+    getActionColor,
+    pointsEqual,
+    getClosestPoint,
+    getEffectiveOffset
 } from './utils.js';
 
 import {
@@ -27,7 +29,6 @@ import {
 } from './uiManager.js';
 
 import {
-    getEventOffset,
     disableScroll,
     enableScroll
 } from './inputHandler.js';
@@ -65,8 +66,7 @@ export class OmnioktagramApp {
     init() {
         this.resizeCanvas();
         this.bindEvents();
-        this.draw();
-        updateVertexIcons(this.actionCount, this.points, this.canvas, this.radius);
+        this.postActionUpdate();
         updateThemeIcon(this.toggleThemeBtn);
     }
 
@@ -96,8 +96,7 @@ export class OmnioktagramApp {
     bindEvents() {
         window.addEventListener('resize', () => {
             this.resizeCanvas();
-            this.draw();
-            updateVertexIcons(this.actionCount, this.points, this.canvas, this.radius);
+            this.postActionUpdate();
         });
 
         ['mousedown', 'touchstart'].forEach(evt => this.canvas.addEventListener(evt, e => this.onDown(e)));
@@ -119,6 +118,17 @@ export class OmnioktagramApp {
         drawTempLine(this.ctx, this.dragging, this.startPoint, this.currentMouse, this.actions, this.radius);
     }
 
+    postActionUpdate() {
+        this.draw();
+        updateVertexIcons(this.actionCount, this.points, this.canvas, this.radius);
+
+        if (this.actionCount >= this.ACTION_LIMIT && !this.historyShown) {
+            this.showHistory();
+            this.finalizeDrawing();
+            this.historyShown = true;
+        }
+    }
+
     resetState() {
         this.visitedPoints = [];
         this.actions = [];
@@ -135,15 +145,11 @@ export class OmnioktagramApp {
         document.getElementById('history').innerHTML = '';
         showVertexIcons();
 
-        this.draw();
-        updateVertexIcons(this.actionCount, this.points, this.canvas, this.radius);
+        this.postActionUpdate();
     }
 
     finalizeDrawing() {
-        this.actions.forEach(action => {
-            action.color = 'black';
-        });
-
+        this.actions.forEach(action => action.color = 'black');
         hideVertexIcons();
         this.draw();
     }
@@ -189,41 +195,22 @@ export class OmnioktagramApp {
         this.actionCount++;
     }
 
-    postActionUpdate() {
-        this.draw();
-        updateVertexIcons(this.actionCount, this.points, this.canvas, this.radius);
-
-        if (this.actionCount >= this.ACTION_LIMIT && !this.historyShown) {
-            this.showHistory();
-            this.finalizeDrawing();
-            this.historyShown = true;
-        }
-    }
-
-
     onDown(e) {
         e.preventDefault();
         disableScroll(this.canvas);
-        const { offsetX, offsetY } = getEventOffset(e, this.canvas);
+        const { offsetX, offsetY } = getEffectiveOffset(e, this.lastTouchOffset, this.canvas);
         this.hasDragged = false;
 
         const isFirstAction = this.actionCount === 0;
         const threshold = this.radius * 0.70;
 
-        for (const pt of this.points) {
-            const dx = pt.x - offsetX;
-            const dy = pt.y - offsetY;
-            const distance = Math.sqrt(dx * dx + dy * dy);
+        const pt = getClosestPoint(offsetX, offsetY, this.points, threshold, candidate => {
+            return isFirstAction ? candidate === this.points[0] : pointsEqual(candidate, this.lastEndPoint);
+        });
 
-            const isStartAllowed = isFirstAction
-                ? pt === this.points[0]
-                : (!this.lastEndPoint || (pt.x === this.lastEndPoint.x && pt.y === this.lastEndPoint.y));
-
-            if (distance < threshold && isStartAllowed) {
-                this.startPoint = pt;
-                this.dragging = true;
-                break;
-            }
+        if (pt) {
+            this.startPoint = pt;
+            this.dragging = true;
         }
     }
 
@@ -232,7 +219,7 @@ export class OmnioktagramApp {
         e.preventDefault();
         this.hasDragged = true;
 
-        const { offsetX, offsetY } = getEventOffset(e, this.canvas);
+        const { offsetX, offsetY } = getEffectiveOffset(e, this.lastTouchOffset, this.canvas);
         this.currentMouse = { x: offsetX, y: offsetY };
 
         if (e.touches && e.touches.length > 0) {
@@ -249,12 +236,7 @@ export class OmnioktagramApp {
 
         this.dragging = false;
 
-        let offsetX, offsetY;
-        if (e.type === 'touchend' && this.lastTouchOffset) {
-            ({ offsetX, offsetY } = this.lastTouchOffset);
-        } else {
-            ({ offsetX, offsetY } = getEventOffset(e, this.canvas));
-        }
+        const { offsetX, offsetY } = getEffectiveOffset(e, this.lastTouchOffset, this.canvas);
 
         if (!this.hasDragged) {
             this.handleTap(offsetX, offsetY);
@@ -268,20 +250,14 @@ export class OmnioktagramApp {
             return;
         }
 
-        const threshold = this.radius * 0.20;
-        for (const pt of this.points) {
-            const dx = pt.x - offsetX;
-            const dy = pt.y - offsetY;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-
-            if (distance < threshold && (pt.x !== this.startPoint.x || pt.y !== this.startPoint.y)) {
-                this.addAction('line', pt, this.startPoint);
-                break;
-            }
+        const pt = getClosestPoint(offsetX, offsetY, this.points, this.radius * 0.20,
+                candidate => !pointsEqual(candidate, this.startPoint));
+        if (pt) {
+            this.addAction('line', pt, this.startPoint);
         }
 
         this.startPoint = null;
-        this.postActionUpdate()
+        this.postActionUpdate();
     }
 
     handleTap(offsetX, offsetY) {
@@ -291,17 +267,11 @@ export class OmnioktagramApp {
         const allowedTapPoint = isFirstAction ? this.points[0] : this.lastEndPoint;
         if (!allowedTapPoint) return;
 
-        const threshold = this.radius * 0.40;
-        for (const pt of this.points) {
-            const dx = pt.x - offsetX;
-            const dy = pt.y - offsetY;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-
-            if (distance < threshold && pt.x === allowedTapPoint.x && pt.y === allowedTapPoint.y) {
-                this.addAction('marker', pt);
-                this.postActionUpdate()
-                break;
-            }
+        const pt = getClosestPoint(offsetX, offsetY, this.points, this.radius * 0.40,
+                candidate => pointsEqual(candidate, allowedTapPoint));
+        if (pt) {
+            this.addAction('marker', pt);
+            this.postActionUpdate();
         }
     }
 
