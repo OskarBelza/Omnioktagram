@@ -15,3 +15,8 @@ document.getElementById('loadSpellButton').addEventListener('click', () => {
     const code = document.getElementById('spellInput').value.trim();
     app.loadSpellFromCode(code);
 });
+
+document.getElementById('undoButton').addEventListener('click', () => {
+    app.undoLastAction();
+});
+

@@ -342,4 +342,32 @@ export class OmnioktagramApp {
         }
         this.postActionUpdate();
     }
+
+    undoLastAction() {
+        if (this.actionCount === 0 || this.historyShown) return;
+
+        const lastAction = this.actions.pop();
+        const lastSpellValue = this.spellCode[this.spellCode.length - 1] ?? 8;
+        this.totalManaCost -= lastSpellValue;
+        if (this.totalManaCost < 0) this.totalManaCost = 0;
+        this.spellCode.pop();
+        this.pointDataLog.pop();
+        this.actionCount--;
+
+        // Odśwież lastEndPoint
+        this.visitedPoints.pop();
+        this.lastEndPoint = this.visitedPoints.length > 0
+            ? this.visitedPoints[this.visitedPoints.length - 1]
+            : null;
+
+        // Odśwież UI
+        this.updateManaLiveDisplay();
+        this.updateStepTitleDisplay();
+        showVertexIcons();
+        this.historyShown = false;
+
+        this.postActionUpdate();
+    }
+
+
 }
