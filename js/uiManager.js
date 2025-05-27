@@ -18,12 +18,6 @@ export function updateVertexIcons(stepIndex, points, canvas, radius) {
     const cssWidth = canvas.clientWidth;
     const cssHeight = canvas.clientHeight;
 
-    const stepTitles = ICON_CONFIG.STEP_TITLES;
-    const titleEl = document.getElementById("top-text-container");
-    if (titleEl && stepIndex >= 0 && stepIndex < stepTitles.length) {
-        titleEl.textContent = stepTitles[stepIndex];
-    }
-
     icons.forEach((el, index) => {
         const base = points[index];
         const angle = (Math.PI / 4) * index - Math.PI / 2;
@@ -65,12 +59,10 @@ export function hideVertexIcons() {
     document.querySelectorAll('.vertex-icon').forEach(img => {
         img.classList.add('hidden');
     });
-    document.getElementById("top-text-container")?.classList.add("hidden");
 }
 
 export function showVertexIcons() {
     document.querySelectorAll('.vertex-icon').forEach(img => {
         img.classList.remove('hidden');
     });
-    document.getElementById("top-text-container")?.classList.remove("hidden");
 }

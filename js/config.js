@@ -27,16 +27,6 @@ export const ICON_CONFIG = {
         6: 1.7,
         7: 1.7
     },
-    STEP_TITLES: [
-        "NATURA",
-        "MOC",
-        "EFEKT",
-        "FORMA",
-        "ODLEGLOŚĆ",
-        "OBSZAR",
-        "CZAS TRWANIA",
-        "OPÓŹNIENIE"
-    ]
 };
 
 
@@ -47,7 +37,17 @@ export const LOGIC_CONFIG = {
     TAP_THRESHOLD_SCALE: 0.35,
     MIN_ACTIONS_FOR_SKIP: 4,
     POINT_COUNT: 8,
-    RADIUS_SCALE: 0.34
+    RADIUS_SCALE: 0.34,
+    STEP_TITLES: [
+        "Natura",
+        "Moc",
+        "Efekt",
+        "Forma",
+        "Odległość",
+        "Obszar",
+        "Czas trwania",
+        "Opóźnienie"
+    ]
 };
 
 export const SPELL_CONFIG = {

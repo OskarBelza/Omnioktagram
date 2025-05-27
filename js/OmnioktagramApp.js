@@ -70,6 +70,18 @@ export class OmnioktagramApp {
         this.bindEvents();
         this.postActionUpdate();
         updateThemeIcon(this.toggleThemeBtn);
+        document.getElementById('history').innerHTML = `
+            <div id="live-info-container" style="
+                display: flex;
+                justify-content: space-between;
+                font-size: 1.6em;
+                font-weight: bold;
+                margin-bottom: 12px;
+            ">
+                <div id="mana-live-display">Koszt many: 0</div>
+                <div id="step-title-display">Etap: NATURA</div>
+            </div>`;
+
     }
 
     resizeCanvas() {
@@ -144,9 +156,22 @@ export class OmnioktagramApp {
         this.dragging = false;
         this.currentMouse = { x: 0, y: 0 };
 
-        document.getElementById('history').innerHTML = '';
+        document.getElementById('history').innerHTML = `
+            <div id="live-info-container" style="
+                display: flex;
+                justify-content: space-between;
+                font-size: 1.6em;
+                font-weight: bold;
+                margin-bottom: 12px;
+            ">
+                <div id="mana-live-display">Koszt many: 0</div>
+                <div id="step-title-display">Etap: Natura</div>
+            </div>`;
+
         showVertexIcons();
 
+        this.updateManaLiveDisplay();
+        this.updateStepTitleDisplay();
         this.postActionUpdate();
     }
 
@@ -172,6 +197,22 @@ export class OmnioktagramApp {
         this.finalizeDrawing();
         this.historyShown = true;
     }
+    updateManaLiveDisplay() {
+        const el = document.getElementById('mana-live-display');
+        if (el) {
+            el.textContent = `Koszt many: ${this.totalManaCost}`;
+        }
+    }
+
+    updateStepTitleDisplay() {
+    const el = document.getElementById('step-title-display');
+        if (el) {
+            const titles = LOGIC_CONFIG.STEP_TITLES
+            const title = titles[this.actionCount] ?? '';
+            el.textContent = `Etap: ${title}`;
+        }
+    }
+
 
     addAction(type, pt, fromPt = null, spellValue = null, infoOverride = null) {
         const color = getActionColor(this.actionCount);
@@ -195,6 +236,8 @@ export class OmnioktagramApp {
 
         this.visitedPoints.push(pt);
         this.actionCount++;
+        this.updateManaLiveDisplay();
+        this.updateStepTitleDisplay();
     }
 
     onDown(e) {
