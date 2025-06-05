@@ -74,7 +74,7 @@ export class OmnioktagramApp {
             <div id="live-info-container" style="
                 display: flex;
                 justify-content: space-between;
-                font-size: 1.6em;
+                font-size: 1.3em;
                 font-weight: bold;
                 margin-bottom: 12px;
             ">
@@ -160,7 +160,7 @@ export class OmnioktagramApp {
             <div id="live-info-container" style="
                 display: flex;
                 justify-content: space-between;
-                font-size: 1.6em;
+                font-size: 1.3em;
                 font-weight: bold;
                 margin-bottom: 12px;
             ">
